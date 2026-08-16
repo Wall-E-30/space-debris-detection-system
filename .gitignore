@@ -223,3 +223,8 @@ data/processed/
 spark/
 
 exploration/
+
+# Training artifacts & model weights
+runs/
+experiments/
+*.pt

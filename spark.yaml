@@ -1,0 +1,6 @@
+path: C:/Users/tilak/Desktop/Repos/space-debris-detection/data/processed/SwissCube
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: swisscube
