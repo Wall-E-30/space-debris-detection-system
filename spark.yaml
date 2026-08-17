@@ -1,4 +1,4 @@
-path: C:/Users/tilak/Desktop/Repos/space-debris-detection/data/processed/SwissCube
+path: C:/Users/Sharanya Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/processed/Swisscube
 train: images/train
 val: images/val
 test: images/test
