@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# swisscube
+data/raw/
+data/processed/
+spark/
+
+exploration/
+
+# Training artifacts & model weights
+runs/
+experiments/
+*.pt

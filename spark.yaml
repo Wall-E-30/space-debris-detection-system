@@ -1,0 +1,6 @@
+path: C:/Users/Sharanya Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/processed/Swisscube
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: swisscube
