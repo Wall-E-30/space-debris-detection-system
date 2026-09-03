@@ -61,7 +61,90 @@ This document records major technical, architectural, and deployment decisions f
 
 ---
 
+## 5. Photometric Augmentation Pipeline (Domain Gap Mitigation)
+
+### Context & Design
+Synthetic satellite imagery (SPARK, SwissCube) exhibits clean rendering artifacts (uniform lighting, zero sensor noise, perfect optical focus) that do not reflect real-world space domain telescope or star tracker conditions.
+
+### Decisions
+1. **Photometric-Only Transforms:** Implemented `src/data/augment.py` using composable photometric adjustments (brightness/contrast jitter, Gaussian blur, sensor read noise). Because pixel positions are unchanged, bounding box annotations remain 100% invariant and require no coordinate recalculations.
+2. **Strict Split Isolation:** Augmentations are applied exclusively to training splits (`train/`); validation and test sets remain unaltered to guarantee uncorrupted metric evaluation.
+3. **Cross-Team Handoff:** Verified pipeline and handed off to Person A with parameterized CLI and programmatic `SpaceImageAugmenter` class.
+
+---
+
+## 6. Stage 3 Orbit Propagation & Conjunction Distance Estimation
+
+### Architecture & Mechanics
+Integrated a real-time orbit propagation pipeline (`src/data/tle_pipeline.py`) downstream of YOLO object detection to calculate relative Euclidean distances between space objects in 3D space.
+
+```
++-------------------+      Class Mapping       +----------------------+
+|  YOLOv8 Detection | -----------------------> |  NORAD ID Resolution |
++-------------------+                          +----------------------+
+                                                          |
+                                                          v
++-------------------+      SGP4 Propagation    +----------------------+
+|  CelesTrak TLEs   | -----------------------> |  3D Geocentric XYZ   |
+|   (Live / GP)     |                          |   Coordinates (km)   |
++-------------------+                          +----------------------+
+                                                          |
+                                                          v
+                                               +----------------------+
+                                               |  Euclidean Distance  |
+                                               |   & Conjunction Risk |
+                                               +----------------------+
+```
+
+### Decisions
+1. **Live Ephemeris Fetching:** Skyfield fetches live General Perturbations (GP) Two-Line Element Sets (TLEs) directly from CelesTrak (`GROUP=active&FORMAT=tle`), indexing into an in-memory NORAD catalog.
+2. **NORAD ID Mapping & Historical Proxies:** Created a lookup table mapping detected classes (e.g., `Cheops`, `LisaPathfinder`, `Proba2`, `ObservationSat1`) to catalog IDs, utilizing active LEO proxies for deep space / historical assets to ensure valid SGP4 orbit propagation.
+3. **Relative Distance Calculation:** Resolved geocentric position vectors $(X, Y, Z)$ in kilometers at UTC timestamps and calculated Euclidean separation:
+   $$\text{Distance} = \|\mathbf{P}_{\text{satA}} - \mathbf{P}_{\text{satB}}\|_2$$
+
+---
+
+## 7. Edge Export Pipeline & Optimization
+
+### Implementation
+Developed `edge/export.py` to automate conversion of trained PyTorch weights (`best.pt`) into optimized edge formats:
+
+1. **ONNX Export (`best.onnx`):**
+   - Exported at FP32 with Opset 12 and ONNX graph simplification enabled (`simplify=True`).
+   - Serves as portable cross-platform fallback.
+2. **NCNN Export (`best_ncnn_model/`):**
+   - Generates `.param` and `.bin` binaries optimized for ARM CPU instruction sets (NEON, fp16 math).
+   - Serves as the primary deployment format for the Raspberry Pi 4 edge target.
+3. **Automated Sanity Verification:**
+   - Script performs automated forward-pass verification using `onnxruntime` with synthetic tensors to validate graph structure and output shapes before edge transfer.
+
+---
+
+## 8. Empirical Edge Benchmarking & Latency Analysis
+
+### Benchmark Methodology (`edge/benchmark.py`)
+Inference throughput and latency were empirically evaluated on local CPU (640x640 resolution, 5 warmup passes, 30-50 iterations) evaluating thread scaling (`threads=1`, `threads=4`) and process memory footprint via `psutil`.
+
+### Empirical Results Summary
+
+| Engine | Thread Config | Mean Latency | p95 Latency | Throughput (FPS) | Memory Footprint (RAM) |
+|---|---|---|---|---|---|
+| **ONNX Runtime** | `threads=1` | 223.20 ms | 385.64 ms | 4.5 FPS | ~0.0 MB RSS |
+| **ONNX Runtime** | `threads=4` | 209.71 ms | 226.12 ms | 4.8 FPS | ~0.0 MB RSS |
+| **NCNN** | `threads=4` | **165.21 ms** | **178.48 ms** | **6.1 FPS** | **~10.9 MB RSS** |
+
+### Key Takeaways & Validation
+- **NCNN Performance Lead:** NCNN with 4 threads achieved a **~21% latency reduction** (165.21 ms vs 209.71 ms) and **~27% higher FPS** (6.1 vs 4.8) compared to 4-thread ONNX Runtime.
+- **Latency Stability:** NCNN delivered substantially tighter p95 variance (178.48 ms vs 226.12 ms in ONNX multi-thread and 385.64 ms in ONNX single-thread).
+- **Architecture Validation:** Empirically confirms the Section 1 recommendation to establish NCNN as the primary edge deployment runtime for ARM CPU SBCs (RPi 4).
+
+---
+
 ## Related References
 - [CV Basics & Object Detection Fundamentals](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/cv_basics.md)
 - [Dataset Shortlist & Exploration Notes](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/README.md)
 - [Object Classes & Taxonomy Decisions](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/decisions.md)
+- [Photometric Augmentation Pipeline](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/data/augment.py)
+- [SGP4 Orbital Tracker & TLE Pipeline](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/data/tle_pipeline.py)
+- [Edge Model Exporter](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/edge/export.py)
+- [Edge Benchmark Suite](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/edge/benchmark.py)
