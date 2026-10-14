@@ -44,6 +44,14 @@ def main():
     parser.add_argument("--augment-copies", type=int, default=1, help="Photometric augmented copies per train image")
     parser.add_argument("--name", type=str, default="space_debris_baseline", help="Experiment name")
     parser.add_argument("--device", type=str, default=None, help="Device to train on ('0', 'cpu', default: auto)")
+    parser.add_argument(
+        "--data-config",
+        "--data",
+        dest="data_config",
+        type=str,
+        default="configs/swisscube.yaml",
+        help="Path to dataset YAML configuration file (default: configs/swisscube.yaml)",
+    )
     args = parser.parse_args()
 
     repo_root = Path.cwd()
@@ -52,13 +60,47 @@ def main():
         data_config = repo_root / data_config
 
     if not data_config.exists():
-        raise FileNotFoundError(f"Config file not found at {data_config}")
+        fallback_root = repo_root / "swisscube.yaml"
+        if fallback_root.exists():
+            data_config = fallback_root
+        else:
+            raise FileNotFoundError(f"Config file not found at {data_config}")
 
     # Read config to get dataset path
     with open(data_config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
 
-    dataset_dir = Path(cfg.get("path", repo_root / "data" / "processed" / "Swisscube"))
+    raw_path = Path(cfg.get("path", "data/processed/Swisscube"))
+    if not raw_path.is_absolute():
+        candidate_from_config = (data_config.parent / raw_path).resolve()
+        candidate_from_root = (repo_root / raw_path).resolve()
+        if candidate_from_config.exists():
+            dataset_dir = candidate_from_config
+        elif candidate_from_root.exists():
+            dataset_dir = candidate_from_root
+        else:
+            dataset_dir = candidate_from_config
+    else:
+        dataset_dir = raw_path
+
+    train_img_dir = dataset_dir / "images" / "train"
+    val_img_dir = dataset_dir / "images" / "val"
+    if not train_img_dir.exists() and not val_img_dir.exists():
+        print("\n" + "=" * 70)
+        print(" [ERROR] Dataset images not found on disk!")
+        print(f" Checked directory: {dataset_dir}")
+        print(f" Missing path:      {val_img_dir}")
+        print("-" * 70)
+        print(" Why this happens:")
+        print("  - Dataset folders ('data/') are gitignored, so images are not")
+        print("    automatically transferred via git clone/pull.")
+        print(" How to fix:")
+        print("  Option 1: If SwissCube is already on this machine, update 'path:' in")
+        print(f"            {data_config.name} to its absolute location.")
+        print("  Option 2: Copy 'data/processed/Swisscube' from your laptop to:")
+        print(f"            {dataset_dir}")
+        print("=" * 70 + "\n")
+        raise FileNotFoundError(f"Dataset images not found in {dataset_dir}")
 
     # Step 1: Run Photometric Augmentation Handoff (Noise, Blur, Brightness Shift)
     print("\n" + "=" * 60)

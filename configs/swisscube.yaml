@@ -1,5 +1,5 @@
 # SwissCube Dataset Configuration
-path: data/processed/Swisscube
+path: ../data/processed/Swisscube
 train: images/train
 val: images/val
 test: images/test

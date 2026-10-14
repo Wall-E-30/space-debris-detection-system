@@ -1,5 +1,5 @@
 # SPARK 10-Class Spacecraft Dataset Configuration (DEC-04)
-path: data/processed/spark
+path: ../data/processed/spark
 train: images/train
 val: images/val
 test: images/test
