@@ -8,3 +8,6 @@ pyyaml
 onnx
 onnxruntime
 tensorboard
+psutil
+skyfield
+ncnn

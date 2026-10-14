@@ -140,6 +140,43 @@ Inference throughput and latency were empirically evaluated on local CPU (640x64
 
 ---
 
+## DEC-04: SPARK Dataset Annotation Audit & Debris Taxonomy Resolution
+
+**Date:** 2026-10-14  
+**Author:** Data & Edge Lead (Role 2)  
+**Status:** Decided & Locked (`one-way` reversibility)  
+**Evidence Artifact:** `docs/spark_class_audit.json`
+
+### Empirical Audit Findings
+On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete row-by-row audit across all annotation rows in the raw SPARK dataset (`data/raw/spark/train.csv` and `data/raw/spark/val.csv`).
+
+| Split | Total Image Files | Total Label Rows | Detected Classes | Debris Rows |
+| :--- | :--- | :--- | :--- | :--- |
+| **Train (`train.csv`)** | 60,000 | 60,000 | 10 classes (6,000 per class) | **0** |
+| **Val (`val.csv`)** | 20,000 | 20,000 | 10 classes (2,000 per class) | **0** |
+| **Total** | 80,000 | 80,000 | 10 classes (8,000 per class) | **0** |
+
+**Detected Class Frequencies (Exactly 8,000 rows each across train+val):**
+1. `Cheops` (8,000)
+2. `LisaPathfinder` (8,000)
+3. `ObservationSat1` (8,000)
+4. `Proba2` (8,000)
+5. `Proba3` (8,000)
+6. `Proba3ocs` (8,000)
+7. `Smart1` (8,000)
+8. `Soho` (8,000)
+9. `VenusExpress` (8,000)
+10. `XMM Newton` (8,000)
+
+### Decision & Project Alignment (Adoption of Branch B)
+1. **Finding F1 Confirmed:** The raw SPARK dataset contains **zero annotated debris fragments**. It is strictly a 10-class spacecraft dataset featuring 10 operational satellites and deep-space probes under varied space lighting conditions.
+2. **Adoption of Branch B:**
+   - **Primary Quantitative Model (Phases 2–7):** Formally defined as **10-class spacecraft detection and classification** (`yolov8n` trained on balanced Subset B at 640px). All quantitative evaluation metrics (mAP@0.5, mAP@0.5:0.95, per-class P/R, edge latency on Raspberry Pi 4) are grounded on this real 10-class dataset.
+   - **Debris Coverage (Phase 8–9):** True space debris (small fragments, mission-related debris, rocket bodies) will be demonstrated **qualitatively** using real-world public orbital imagery (SPEED+ / PRISMA rendezvous imagery).
+   - **Transparency & Integrity:** The project report and evaluation presentations will document this empirical finding openly, highlighting that real-world edge deployment requires multi-target tracking across active payloads and defunct assets.
+
+---
+
 ## Related References
 - [CV Basics & Object Detection Fundamentals](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/cv_basics.md)
 - [Dataset Shortlist & Exploration Notes](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/README.md)

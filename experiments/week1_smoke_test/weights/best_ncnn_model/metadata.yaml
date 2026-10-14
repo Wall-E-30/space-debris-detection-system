@@ -1,0 +1,20 @@
+description: Ultralytics best model trained on C:\Users\Sharanya Nagar\Desktop\ISRO_Hardware\space-debris-detection-system\spark.yaml
+author: Ultralytics
+date: '2026-09-03T08:07:05.712017+05:30'
+version: 8.4.120
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+head: Detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: swisscube
+args:
+  batch: 1
+  quantize: null
+channels: 3
+end2end: false

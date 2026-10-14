@@ -1,0 +1,58 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.0",
+  "phases": [
+    {
+      "number": "1",
+      "name": "Foundations, Evaluation Harness & Day-1 Audit",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "SPARK Dataset Preparation & Stratified Subsetting",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Baseline Edge Validation on Raspberry Pi",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "SPARK Model Training & Optimization",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Model Evaluation, Error Analysis & Model Freeze",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "Edge Quantization & INT8 Accuracy Retention",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Physical Raspberry Pi Benchmark Suite & Tradeoff Analysis",
+      "status": "pending"
+    },
+    {
+      "number": "8",
+      "name": "End-to-End Inference CLI, Demo & Astrodynamics Layer",
+      "status": "pending"
+    },
+    {
+      "number": "9",
+      "name": "Real-Image Validation, Final Reporting & Project Delivery",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 01 of 9 · executing"
+  },
+  "updated_at": "2026-10-14T02:04:21.979Z"
+}

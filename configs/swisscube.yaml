@@ -1,0 +1,8 @@
+# SwissCube Dataset Configuration
+path: ../data/processed/Swisscube
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: swisscube

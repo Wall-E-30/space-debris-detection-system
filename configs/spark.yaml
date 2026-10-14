@@ -1,0 +1,17 @@
+# SPARK 10-Class Spacecraft Dataset Configuration (DEC-04)
+path: ../data/processed/spark
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: Cheops
+  1: LisaPathfinder
+  2: ObservationSat1
+  3: Proba2
+  4: Proba3
+  5: Proba3ocs
+  6: Smart1
+  7: Soho
+  8: VenusExpress
+  9: XMM Newton
