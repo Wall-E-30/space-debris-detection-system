@@ -151,28 +151,76 @@ def main():
         description="Audit SPARK Dataset Annotation CSVs for Class Distribution & Debris Labels"
     )
     parser.add_argument(
-        "--train_csv",
+        "--spark-dir",
+        "--data",
+        "--dir",
+        dest="spark_dir",
         type=str,
-        default="data/raw/spark/train.csv",
+        default=None,
+        help="Root directory containing SPARK dataset (searches for train.csv and val.csv)",
+    )
+    parser.add_argument(
+        "--train_csv",
+        "--train-csv",
+        dest="train_csv",
+        type=str,
+        default=None,
         help="Path to raw SPARK train.csv",
     )
     parser.add_argument(
         "--val_csv",
+        "--val-csv",
+        dest="val_csv",
         type=str,
-        default="data/raw/spark/val.csv",
+        default=None,
         help="Path to raw SPARK val.csv",
     )
     parser.add_argument(
         "--out",
+        "--out-json",
+        dest="out",
         type=str,
         default="docs/spark_class_audit.json",
         help="Destination JSON report path",
     )
     args = parser.parse_args()
 
+    train_csv = args.train_csv
+    val_csv = args.val_csv
+
+    if args.spark_dir:
+        spark_dir = Path(args.spark_dir)
+        if not spark_dir.exists():
+            raise FileNotFoundError(f"Provided --spark-dir does not exist: {spark_dir}")
+
+        train_matches = list(spark_dir.glob("**/train.csv")) + list(spark_dir.glob("train.csv"))
+        val_matches = list(spark_dir.glob("**/val.csv")) + list(spark_dir.glob("val.csv"))
+
+        if not train_csv and train_matches:
+            train_csv = str(train_matches[0])
+        if not val_csv and val_matches:
+            val_csv = str(val_matches[0])
+
+    # Fallbacks if still not specified
+    if not train_csv:
+        for candidate in ["data/raw/spark/train.csv", "data/raw/SPARK/train.csv", "spark/train.csv"]:
+            if Path(candidate).exists():
+                train_csv = candidate
+                break
+        if not train_csv:
+            train_csv = "data/raw/spark/train.csv"
+
+    if not val_csv:
+        for candidate in ["data/raw/spark/val.csv", "data/raw/SPARK/val.csv", "spark/val.csv"]:
+            if Path(candidate).exists():
+                val_csv = candidate
+                break
+        if not val_csv:
+            val_csv = "data/raw/spark/val.csv"
+
     run_audit(
-        train_csv_path=args.train_csv,
-        val_csv_path=args.val_csv,
+        train_csv_path=train_csv,
+        val_csv_path=val_csv,
         out_path=args.out,
     )
 
