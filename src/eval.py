@@ -213,8 +213,10 @@ def main():
     )
     parser.add_argument(
         "--data",
+        "--data-config",
+        dest="data",
         type=str,
-        default="spark.yaml",
+        default="configs/spark.yaml",
         help="Path to dataset configuration YAML",
     )
     parser.add_argument(
@@ -244,6 +246,9 @@ def main():
     )
     parser.add_argument(
         "--out",
+        "--out-json",
+        "--output",
+        dest="out",
         type=str,
         default="metrics.json",
         help="Destination path for output JSON (default: 'metrics.json')",

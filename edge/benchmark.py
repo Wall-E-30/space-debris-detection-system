@@ -30,6 +30,7 @@ def benchmark_onnx(
     num_runs: int = 100,
     warmup_runs: int = 10,
     threads: int = 4,
+    device: str = "cpu",
 ) -> Optional[Dict[str, Any]]:
     """
     Benchmark ONNX Runtime inference latency and peak memory usage.
@@ -51,10 +52,24 @@ def benchmark_onnx(
     opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
     opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
 
+    is_cuda = str(device).lower() in ("cuda", "0", "gpu")
+    available_providers = ort.get_available_providers()
+
+    if is_cuda and "CUDAExecutionProvider" in available_providers:
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        engine_name = "ONNX Runtime (CUDA / GV100)"
+    elif is_cuda:
+        print("[warn] CUDAExecutionProvider requested but not available in onnxruntime. Falling back to CPU.")
+        providers = ["CPUExecutionProvider"]
+        engine_name = f"ONNX Runtime (CPU, threads={threads})"
+    else:
+        providers = ["CPUExecutionProvider"]
+        engine_name = f"ONNX Runtime (CPU, threads={threads})"
+
     session = ort.InferenceSession(
         str(model_file),
         sess_options=opts,
-        providers=["CPUExecutionProvider"],
+        providers=providers,
     )
     input_name = session.get_inputs()[0].name
     dummy_input = np.random.randn(1, 3, imgsz, imgsz).astype(np.float32)
@@ -82,12 +97,13 @@ def benchmark_onnx(
     fps = 1000.0 / mean_ms if mean_ms > 0 else 0.0
 
     return {
-        "engine": f"ONNX Runtime (threads={threads})",
+        "engine": engine_name,
         "format": "onnx",
         "precision": "fp32",
         "model": str(model_file.name),
+        "device": "cuda" if "CUDAExecutionProvider" in session.get_providers() else "cpu",
         "imgsz": imgsz,
-        "threads": threads,
+        "threads": threads if not is_cuda else 1,
         "runs": num_runs,
         "warmup": warmup_runs,
         "inference_mean_ms": round(mean_ms, 2),
@@ -185,14 +201,22 @@ def benchmark_ncnn(
 def main():
     parser = argparse.ArgumentParser(description="Edge Inference Benchmark Harness (DEC-01 / D-05 / D-06)")
     parser.add_argument(
+        "--model",
         "--onnx",
+        dest="onnx",
         default="experiments/week1_smoke_test/weights/best.onnx",
-        help="Path to ONNX weights",
+        help="Path to ONNX weights (.onnx) or model file",
     )
     parser.add_argument(
         "--ncnn",
         default="experiments/week1_smoke_test/weights/best_ncnn_model",
         help="Path to NCNN directory containing model.ncnn.param and model.ncnn.bin",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cpu",
+        help="Device to run on: 'cpu' or 'cuda'/'0' (default: cpu)",
     )
     parser.add_argument(
         "--imgsz",
@@ -220,6 +244,8 @@ def main():
     )
     parser.add_argument(
         "--out",
+        "--out-json",
+        dest="out",
         type=str,
         default="edge_benchmark.json",
         help="Destination JSON report file path",
@@ -228,6 +254,8 @@ def main():
 
     print("\n" + "=" * 65)
     print("  RUNNING EDGE BENCHMARK SUITE (RIGOROUS PROTOCOL)")
+    print(f"  Model:             {args.onnx}")
+    print(f"  Device:            {args.device}")
     print(f"  Warmup Iterations: {args.warmup}")
     print(f"  Timed Iterations:  {args.runs}")
     print(f"  CPU Threads:       {args.threads}")
@@ -236,15 +264,18 @@ def main():
 
     results: List[Dict[str, Any]] = []
 
-    # Benchmark ONNX Runtime (Single-thread & Multi-thread)
+    # Benchmark ONNX Runtime (Single-thread & Multi-thread, or CUDA)
     if Path(args.onnx).exists():
-        for t in [1, args.threads]:
+        is_cuda = str(args.device).lower() in ("cuda", "0", "gpu")
+        threads_to_test = [args.threads] if is_cuda else [1, args.threads]
+        for t in threads_to_test:
             res = benchmark_onnx(
                 model_path=args.onnx,
                 imgsz=args.imgsz,
                 num_runs=args.runs,
                 warmup_runs=args.warmup,
                 threads=t,
+                device=args.device,
             )
             if res:
                 results.append(res)
