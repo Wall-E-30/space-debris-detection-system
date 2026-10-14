@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-10-14T10:20:23.793396+00:00",
+  "platform": {
+    "system": "Windows",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "python_version": "3.10.11",
+    "cpu_count": 12
+  },
+  "config": {
+    "imgsz": 640,
+    "runs": 100,
+    "warmup": 10,
+    "threads": 4
+  },
+  "benchmarks": [
+    {
+      "engine": "ONNX Runtime (threads=1)",
+      "format": "onnx",
+      "precision": "fp32",
+      "model": "best.onnx",
+      "imgsz": 640,
+      "threads": 1,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 170.92,
+      "inference_median_ms": 166.04,
+      "inference_p95_ms": 219.49,
+      "inference_std_ms": 27.06,
+      "fps": 5.9,
+      "peak_rss_mb": 118.62
+    },
+    {
+      "engine": "ONNX Runtime (threads=4)",
+      "format": "onnx",
+      "precision": "fp32",
+      "model": "best.onnx",
+      "imgsz": 640,
+      "threads": 4,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 46.44,
+      "inference_median_ms": 46.07,
+      "inference_p95_ms": 54.69,
+      "inference_std_ms": 4.86,
+      "fps": 21.5,
+      "peak_rss_mb": 121.78
+    },
+    {
+      "engine": "NCNN (threads=4)",
+      "format": "ncnn",
+      "precision": "fp32",
+      "model": "best_ncnn_model",
+      "imgsz": 640,
+      "threads": 4,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 71.86,
+      "inference_median_ms": 71.49,
+      "inference_p95_ms": 81.59,
+      "inference_std_ms": 8.23,
+      "fps": 13.9,
+      "peak_rss_mb": 188.21
+    }
+  ]
+}

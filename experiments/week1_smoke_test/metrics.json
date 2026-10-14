@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-10-14T02:08:00Z",
+  "model_path": "experiments/week1_smoke_test/weights/best.pt",
+  "data_path": "configs/swisscube.yaml",
+  "imgsz": 1024,
+  "split": "val",
+  "device": "cpu",
+  "map50": 0.9903,
+  "map50_95": 0.9211,
+  "mp": 0.9741,
+  "mr": 0.9621,
+  "speed": {
+    "preprocess_ms": 1.2,
+    "inference_ms": 12.5,
+    "postprocess_ms": 1.8,
+    "total_ms": 15.5
+  },
+  "per_class": {
+    "swisscube": {
+      "class_id": 0,
+      "p": 0.9741,
+      "r": 0.9621,
+      "map50": 0.9903,
+      "map50_95": 0.9211
+    }
+  },
+  "size_mb": 6.03,
+  "params": 3005843,
+  "gflops": 8.1
+}

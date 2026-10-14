@@ -14,12 +14,26 @@ Features:
 """
 
 import argparse
+import sys
 from pathlib import Path
+
+# Add repository root to sys.path so 'src.*' imports resolve regardless of cwd or invocation directory
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
 import yaml
 import torch
 from ultralytics import YOLO
 
-from src.data.augment import SpaceImageAugmenter, run_augmentation
+try:
+    from src.data.augment import SpaceImageAugmenter, run_augmentation
+except (ImportError, ModuleNotFoundError):
+    try:
+        from data.augment import SpaceImageAugmenter, run_augmentation
+    except (ImportError, ModuleNotFoundError):
+        SpaceImageAugmenter = None
+        run_augmentation = None
 
 
 def main():

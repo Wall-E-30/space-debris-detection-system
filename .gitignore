@@ -226,11 +226,17 @@ exploration/
 
 # Training artifacts & model weights
 runs/
-experiments/
+experiments/*
+!experiments/week1_smoke_test/
+!experiments/week1_smoke_test/**
 *.pt
+!experiments/week1_smoke_test/weights/*.pt
 *.bin
+!experiments/week1_smoke_test/weights/best_ncnn_model/*.bin
 *.param
+!experiments/week1_smoke_test/weights/best_ncnn_model/*.param
 *.onnx
+!experiments/week1_smoke_test/weights/*.onnx
 *.zip
 
 # Cached ephemeris and temporary downloads
