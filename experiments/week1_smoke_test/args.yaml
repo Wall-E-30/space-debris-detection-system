@@ -1,18 +1,18 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: C:/Users/Sharanya Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/spark.yaml
+data: D:/SPACE_DEBRIS/space-debris-detection-system/configs/swisscube.yaml
 epochs: 5
 time: null
 patience: 100
-batch: 8
+batch: 16
 imgsz: 1024
 save: true
 save_period: -1
 cache: true
 device: '0'
 workers: 4
-project: C:/Users/Sharanya Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/experiments
+project: D:/SPACE_DEBRIS/space-debris-detection-system/experiments
 name: week1_smoke_test
 exist_ok: false
 pretrained: true
@@ -32,7 +32,7 @@ profile: false
 freeze: null
 multi_scale: 0.0
 compile: false
-channels_last: false
+channels_last: null
 overlap_mask: true
 mask_ratio: 4
 dropout: 0.0
@@ -45,7 +45,7 @@ max_det: 300
 quantize: null
 dnn: false
 plots: true
-end2end: null
+nms: null
 source: null
 vid_stride: 1
 stream_buffer: false
@@ -65,13 +65,11 @@ show_conf: true
 show_boxes: true
 line_width: null
 format: torchscript
-keras: false
 optimize: false
 dynamic: false
 simplify: true
 opset: null
 workspace: null
-nms: false
 lr0: 0.01
 lrf: 0.01
 momentum: 0.937
@@ -96,12 +94,12 @@ nbs: 64
 hsv_h: 0.015
 hsv_s: 0.7
 hsv_v: 0.4
-degrees: 0.0
+degrees: 180.0
 translate: 0.1
 scale: 0.5
 shear: 0.0
 perspective: 0.0
-flipud: 0.0
+flipud: 0.5
 fliplr: 0.5
 bgr: 0.0
 mosaic: 1.0
@@ -113,4 +111,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: tracktrack.yaml
-save_dir: C:\Users\Sharanya Nagar\Desktop\ISRO_Hardware\space-debris-detection-system\experiments\week1_smoke_test
+save_dir: D:\SPACE_DEBRIS\space-debris-detection-system\experiments\week1_smoke_test
