@@ -32,9 +32,9 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 **Plans**: 3 plans  
 
 Plans:
-- [ ] 01-01: Implement `src/eval.py` and verify against SwissCube `best.pt`.
-- [ ] 01-02: Count SPARK CSV class rows, audit debris presence, and record taxonomy in `docs/decisions.md`.
-- [ ] 01-03: Prepare Raspberry Pi 4 environment and resolve repository hygiene (`requirements-edge.txt`, YAML configs, `.gitignore`).
+- [x] 01-01: Implement `src/eval.py` and verify against SwissCube `best.pt`.
+- [x] 01-02: Count SPARK CSV class rows, audit debris presence, and record taxonomy in `docs/decisions.md`.
+- [x] 01-03: Prepare Raspberry Pi 4 environment and resolve repository hygiene (`requirements-edge.txt`, YAML configs, `.gitignore`).
 
 ---
 

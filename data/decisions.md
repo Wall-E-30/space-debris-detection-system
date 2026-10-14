@@ -32,6 +32,11 @@ None of the three shortlisted datasets contain a dedicated rocket-body class —
 
 Carried over from SPARK's published baseline: even within its 11 classes, the dataset is roughly balanced (~13–14k images/class), but our collapsed `satellite` superclass will end up with ~10x more images than `debris` once classes are merged. Plan to apply focal loss / class-weighted sampling from the first training run, not as a later fix — consistent with the project report's stated risk mitigation for synthetic-to-real gap and the general SSA class-imbalance problem.
 
-## Next decision point
+## Next decision point: RESOLVED (DEC-04)
 
-Revisit this taxonomy after the first SPARK-trained baseline (end of Week 2) — if `rocket_body` data becomes available via option B or C, the classification head and label files will need to be regenerated, so better to confirm early rather than mid-training.
+**Resolved 2026-10-14 (DEC-04 / F1):**
+Row-by-row audit of raw `train.csv` (60,000 rows) and `val.csv` (20,000 rows) revealed that SPARK contains **zero** debris rows (strictly 10 spacecraft classes at 8,000 instances each).
+Adopted **Branch B**:
+- The primary YOLOv8n detector is formally defined as **10-class spacecraft detection** on balanced Subset B.
+- Debris detection is addressed qualitatively using SPEED+ rendezvous imagery in Week 4.
+- Full details documented in [`docs/decisions.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md) (DEC-04) and `docs/spark_class_audit.json`.

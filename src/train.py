@@ -29,17 +29,19 @@ def main():
     parser.add_argument("--batch", type=int, default=8, help="Batch size")
     parser.add_argument("--augment-copies", type=int, default=1, help="Photometric augmented copies per train image")
     parser.add_argument("--name", type=str, default="space_debris_baseline", help="Experiment name")
-    parser.add_argument("--data-config", type=str, default="spark.yaml", help="Path to data YAML config")
+    parser.add_argument("--device", type=str, default=None, help="Device to train on ('0', 'cpu', default: auto)")
     args = parser.parse_args()
 
     repo_root = Path.cwd()
-    spark_yaml = repo_root / args.data_config
+    data_config = Path(args.data_config)
+    if not data_config.is_absolute():
+        data_config = repo_root / data_config
 
-    if not spark_yaml.exists():
-        raise FileNotFoundError(f"Config file not found at {spark_yaml}")
+    if not data_config.exists():
+        raise FileNotFoundError(f"Config file not found at {data_config}")
 
     # Read config to get dataset path
-    with open(spark_yaml, "r") as f:
+    with open(data_config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
 
     dataset_dir = Path(cfg.get("path", repo_root / "data" / "processed" / "Swisscube"))
@@ -69,20 +71,23 @@ def main():
     else:
         print(f"Photometric augmentation verified. Found {len(existing_aug)} existing augmented images in dataset.")
 
-    # Step 2: Configure GPU Device & YOLOv8 Space Domain Training
+    # Step 2: Configure Device & YOLOv8 Space Domain Training
     print("\n" + "=" * 60)
     print(" [Step 2/2] Launching Space-Domain YOLOv8 Training Loop")
     print("=" * 60)
 
-    device = 0 if torch.cuda.is_available() else "cpu"
-    device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+    if args.device is not None:
+        device = args.device
+    else:
+        device = 0 if torch.cuda.is_available() else "cpu"
+    device_name = torch.cuda.get_device_name(0) if str(device) == "0" and torch.cuda.is_available() else "CPU"
     print(f"Training Device: {device} ({device_name})")
 
     model = YOLO("yolov8n.pt")
 
     # Space-domain hyperparameter augmentations
     results = model.train(
-        data=str(spark_yaml.resolve().as_posix()),
+        data=str(data_config.resolve().as_posix()),
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
@@ -102,7 +107,41 @@ def main():
         device=device
     )
 
-    print("\nTraining Run Complete!")
+    # -------------------------------------------------------------
+    # Persistent Training Run Archiving (outputs/training/)
+    # -------------------------------------------------------------
+    import datetime, json
+    now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    archive_dir = repo_root / "outputs" / "training"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    train_record = {
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "experiment_name": args.name,
+        "epochs": args.epochs,
+        "imgsz": args.imgsz,
+        "batch": args.batch,
+        "data_config": str(data_config.as_posix()),
+        "device": str(device),
+        "save_dir": str(getattr(results, "save_dir", "")),
+    }
+
+    timestamped_file = archive_dir / f"train_{now_str}.json"
+    latest_file = archive_dir / "latest.json"
+    history_file = archive_dir / "history.jsonl"
+
+    with open(timestamped_file, "w", encoding="utf-8") as f:
+        json.dump(train_record, f, indent=2)
+
+    with open(latest_file, "w", encoding="utf-8") as f:
+        json.dump(train_record, f, indent=2)
+
+    with open(history_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(train_record) + "\n")
+
+    print(f"[OK] Training run archived to: {timestamped_file.resolve()}")
+    print(f"[OK] Latest training run updated at: {latest_file.resolve()}\n")
+
     return results
 
 

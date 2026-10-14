@@ -1,0 +1,63 @@
+{
+  "train_csv": "data/raw/spark/train.csv",
+  "val_csv": "data/raw/spark/val.csv",
+  "train_total_rows": 60000,
+  "train_unique_images": 60000,
+  "val_total_rows": 20000,
+  "val_unique_images": 20000,
+  "total_rows": 80000,
+  "total_unique_images": 80000,
+  "classes_detected": [
+    "Cheops",
+    "LisaPathfinder",
+    "ObservationSat1",
+    "Proba2",
+    "Proba3",
+    "Proba3ocs",
+    "Smart1",
+    "Soho",
+    "VenusExpress",
+    "XMM Newton"
+  ],
+  "class_count_total": 10,
+  "class_counts_train": {
+    "Cheops": 6000,
+    "LisaPathfinder": 6000,
+    "ObservationSat1": 6000,
+    "Proba2": 6000,
+    "Proba3": 6000,
+    "Proba3ocs": 6000,
+    "Smart1": 6000,
+    "Soho": 6000,
+    "VenusExpress": 6000,
+    "XMM Newton": 6000
+  },
+  "class_counts_val": {
+    "Cheops": 2000,
+    "LisaPathfinder": 2000,
+    "ObservationSat1": 2000,
+    "Proba2": 2000,
+    "Proba3": 2000,
+    "Proba3ocs": 2000,
+    "Smart1": 2000,
+    "Soho": 2000,
+    "VenusExpress": 2000,
+    "XMM Newton": 2000
+  },
+  "class_counts": {
+    "Cheops": 8000,
+    "LisaPathfinder": 8000,
+    "ObservationSat1": 8000,
+    "Proba2": 8000,
+    "Proba3": 8000,
+    "Proba3ocs": 8000,
+    "Smart1": 8000,
+    "Soho": 8000,
+    "VenusExpress": 8000,
+    "XMM Newton": 8000
+  },
+  "debris_classes_found": [],
+  "debris_instances_count": 0,
+  "satellite_instances_count": 80000,
+  "decision_recommendation": "Branch B (Debris absent in annotations — 10-class spacecraft detection)"
+}

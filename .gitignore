@@ -228,3 +228,10 @@ exploration/
 runs/
 experiments/
 *.pt
+*.bin
+*.param
+*.onnx
+*.zip
+
+# Cached ephemeris and temporary downloads
+gp.php

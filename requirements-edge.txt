@@ -1,0 +1,6 @@
+# Lightweight edge runtime dependencies for Raspberry Pi 4 Model B
+onnxruntime>=1.15.0
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+psutil>=5.9.0
+pyyaml>=6.0
