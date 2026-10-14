@@ -1,30 +1,30 @@
 {
-  "timestamp": "2026-10-14T02:08:00Z",
-  "model_path": "experiments/week1_smoke_test/weights/best.pt",
-  "data_path": "configs/swisscube.yaml",
+  "timestamp": "2026-10-14T13:01:41.220040+00:00",
+  "model_path": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\experiments\\week1_smoke_test\\weights\\best.pt",
+  "data_path": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\configs\\swisscube.yaml",
   "imgsz": 1024,
   "split": "val",
-  "device": "cpu",
-  "map50": 0.9903,
-  "map50_95": 0.9211,
-  "mp": 0.9741,
-  "mr": 0.9621,
+  "device": "0",
+  "map50": 0.9008,
+  "map50_95": 0.4866,
+  "mp": 0.8254,
+  "mr": 0.8047,
   "speed": {
-    "preprocess_ms": 1.2,
-    "inference_ms": 12.5,
-    "postprocess_ms": 1.8,
-    "total_ms": 15.5
+    "preprocess_ms": 2.6,
+    "inference_ms": 3.9,
+    "postprocess_ms": 0.99,
+    "total_ms": 7.49
   },
   "per_class": {
     "swisscube": {
       "class_id": 0,
-      "p": 0.9741,
-      "r": 0.9621,
-      "map50": 0.9903,
-      "map50_95": 0.9211
+      "p": 0.8254,
+      "r": 0.8047,
+      "map50": 0.9008,
+      "map50_95": 0.4866
     }
   },
-  "size_mb": 6.03,
-  "params": 3005843,
-  "gflops": 8.1
+  "size_mb": 6.28,
+  "params": null,
+  "gflops": null
 }

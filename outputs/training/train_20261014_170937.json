@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-10-14T11:39:37.402303+00:00",
+  "experiment_name": "week1_smoke_test",
+  "epochs": 5,
+  "imgsz": 1024,
+  "batch": 16,
+  "data_config": "D:/SPACE_DEBRIS/space-debris-detection-system/configs/swisscube.yaml",
+  "device": "0",
+  "save_dir": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\experiments\\week1_smoke_test"
+}
