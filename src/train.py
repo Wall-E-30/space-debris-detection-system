@@ -52,6 +52,7 @@ def main():
         default="configs/swisscube.yaml",
         help="Path to dataset YAML configuration file (default: configs/swisscube.yaml)",
     )
+    parser.add_argument("--exist-ok", action="store_true", default=False, help="Overwrite existing experiment directory")
     args = parser.parse_args()
 
     repo_root = Path.cwd()
@@ -112,6 +113,7 @@ def main():
 
     if len(existing_aug) == 0 and args.augment_copies > 0:
         print(f"Applying photometric augmentation ({args.augment_copies} copy/copies per image)...")
+        print(" [Tip: To bypass offline image generation and train immediately, use '--augment-copies 0']")
         augmenter = SpaceImageAugmenter(
             brightness_range=(0.7, 1.3),
             contrast_range=(0.7, 1.3),
@@ -160,6 +162,7 @@ def main():
         erasing=0.4,     # Random erasing for self-occlusion & antenna/panel obscuration
         project=str((repo_root / "experiments").resolve().as_posix()),
         name=args.name,
+        exist_ok=args.exist_ok,
         device=device
     )
 

@@ -45,10 +45,27 @@ import argparse
 import random
 import shutil
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
+
+def format_time(seconds: float) -> str:
+    """Format duration in seconds into human-readable HH:MM:SS or MM:SS."""
+    if seconds < 0:
+        return "00:00"
+    m, s = divmod(int(seconds), 60)
+    h, m = divmod(m, 60)
+    if h > 0:
+        return f"{h:d}h {m:02d}m {s:02d}s"
+    return f"{m:02d}m {s:02d}s"
 
 
 # ---------------------------------------------------------------------------
@@ -195,12 +212,22 @@ def run_augmentation(data_dir: Path, split: str, n_copies: int, augmenter: Space
         print(f"[warn] No images found in images/{split}/")
         return 0, 0
 
+    total_images = len(pairs)
+    total_to_generate = total_images * n_copies
+    print(f"\n[INFO] Found {total_images} base image(s) in '{split}' split.")
+    print(f"[INFO] Generating {total_to_generate} augmented copy/copies ({n_copies} per base image)...")
+
     img_dir = data_dir / "images" / split
     lbl_dir = data_dir / "labels" / split
 
     written_imgs, written_lbls, missing_labels = 0, 0, 0
+    start_time = time.time()
+    last_print_time = start_time
 
-    for img_path, lbl_path in pairs:
+    use_tqdm = tqdm is not None
+    iterator = tqdm(pairs, desc=f"  Augmenting {split}", unit="img", dynamic_ncols=True) if use_tqdm else pairs
+
+    for idx, (img_path, lbl_path) in enumerate(iterator, 1):
         try:
             with Image.open(img_path) as im:
                 im.load()
@@ -219,11 +246,35 @@ def run_augmentation(data_dir: Path, split: str, n_copies: int, augmenter: Space
                     else:
                         missing_labels += 1
         except Exception as e:
-            print(f"[warn] Failed to process {img_path.name}: {e}")
+            print(f"\n[warn] Failed to process {img_path.name}: {e}")
+
+        now = time.time()
+        elapsed = now - start_time
+        # Fallback console update every 1.5 seconds if tqdm is not installed
+        if not use_tqdm and (now - last_print_time >= 1.5 or idx == total_images):
+            rate = idx / elapsed if elapsed > 0 else 0
+            remaining_items = total_images - idx
+            eta_seconds = remaining_items / rate if rate > 0 else 0
+            pct = (idx / total_images) * 100.0
+            print(
+                f"  [{idx:5d}/{total_images:5d}] {pct:5.1f}% | "
+                f"Speed: {rate:4.1f} img/s | "
+                f"Elapsed: {format_time(elapsed)} | "
+                f"ETA: {format_time(eta_seconds)}",
+                end="\r" if idx < total_images else "\n",
+                flush=True,
+            )
+            last_print_time = now
+
+    total_elapsed = time.time() - start_time
+    print(
+        f"\n[OK] Photometric augmentation completed in {format_time(total_elapsed)} "
+        f"({written_imgs} images generated, {written_lbls} labels copied)."
+    )
 
     if missing_labels:
         print(f"[warn] {missing_labels} augmented image(s) have no matching label "
-             f"file (source image had none either) — check for unlabeled images.")
+              f"file (source image had none either) — check for unlabeled images.")
 
     return written_imgs, written_lbls
 
