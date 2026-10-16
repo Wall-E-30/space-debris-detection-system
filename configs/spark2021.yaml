@@ -1,0 +1,21 @@
+# SPARK2021 11-Class Dataset Configuration (Satellites + Debris)
+# Supersedes Phase 1 (SwissCube single-class and SPARK 10-class spacecraft)
+# Target: 10 Satellite classes + 1 Consolidated Debris class (~25k images across 5 debris models)
+
+path: ./data/processed/spark2021
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: AcrimSat
+  1: Aquarius
+  2: Aura
+  3: Calipso
+  4: Cloudsat
+  5: CubeSat
+  6: Debris
+  7: Jason
+  8: Sentinel-6
+  9: Terra
+  10: TRMM
