@@ -1,12 +1,12 @@
 {
-  "train_csv": "data/raw/spark/train.csv",
-  "val_csv": "data/raw/spark/val.csv",
+  "train_csv": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\data\\raw\\SPARK\\train.csv",
+  "val_csv": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\data\\raw\\SPARK\\val.csv",
   "train_total_rows": 60000,
-  "train_unique_images": 60000,
+  "train_unique_images": 9998,
   "val_total_rows": 20000,
-  "val_unique_images": 20000,
+  "val_unique_images": 8941,
   "total_rows": 80000,
-  "total_unique_images": 80000,
+  "total_unique_images": 18939,
   "classes_detected": [
     "Cheops",
     "LisaPathfinder",
@@ -59,5 +59,5 @@
   "debris_classes_found": [],
   "debris_instances_count": 0,
   "satellite_instances_count": 80000,
-  "decision_recommendation": "Branch B (Debris absent in annotations — 10-class spacecraft detection)"
+  "decision_recommendation": "Branch B (Debris absent in annotations \u2014 10-class spacecraft detection)"
 }
