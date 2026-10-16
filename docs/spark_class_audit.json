@@ -1,6 +1,6 @@
 {
-  "train_csv": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\data\\raw\\SPARK\\train.csv",
-  "val_csv": "D:\\SPACE_DEBRIS\\space-debris-detection-system\\data\\raw\\SPARK\\val.csv",
+  "train_csv": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK\\train.csv",
+  "val_csv": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK\\val.csv",
   "train_total_rows": 60000,
   "train_unique_images": 9998,
   "val_total_rows": 20000,
