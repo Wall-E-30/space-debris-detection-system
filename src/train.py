@@ -45,6 +45,12 @@ def main():
     parser.add_argument("--name", type=str, default="space_debris_baseline", help="Experiment name")
     parser.add_argument("--device", type=str, default=None, help="Device to train on ('0', 'cpu', default: auto)")
     parser.add_argument(
+        "--weights",
+        type=str,
+        default="yolov8n.pt",
+        help="Initial model weights (.pt checkpoint or yolov8n.pt, default: yolov8n.pt)",
+    )
+    parser.add_argument(
         "--data-config",
         "--data",
         dest="data_config",
@@ -140,8 +146,9 @@ def main():
         device = 0 if torch.cuda.is_available() else "cpu"
     device_name = torch.cuda.get_device_name(0) if str(device) == "0" and torch.cuda.is_available() else "CPU"
     print(f"Training Device: {device} ({device_name})")
+    print(f"Base Weights:    {args.weights}")
 
-    model = YOLO("yolov8n.pt")
+    model = YOLO(args.weights)
 
     # Space-domain hyperparameter augmentations
     results = model.train(

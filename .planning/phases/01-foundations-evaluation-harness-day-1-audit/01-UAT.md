@@ -34,9 +34,9 @@ expected: |
   `edge/verify_pi_env.py` checks Python version, system hardware, onnxruntime import, and writes pass/fail health checks to `outputs/env_checks/latest.json`.
 result: pass
 
-### 4. Rigorous Edge Benchmark Harness (`edge/benchmark.py`)
+### 4. Rigorous Benchmark Harness (`edge/benchmark.py`) — Laptop CPU Proxy
 expected: |
-  `edge/benchmark.py` executes >=10 warmup runs and >=100 timed runs across 4 threads, tracks peak RSS memory, and archives latency metrics to `outputs/benchmarks/` showing sub-100ms inference (~77ms / 12.9 FPS).
+  `edge/benchmark.py` executes >=10 warmup runs and >=100 timed runs across 4 threads on laptop CPU proxy (i5-11400H), tracks peak RSS memory, and archives latency metrics to `outputs/benchmarks/` (85.94 ms, ~207 MB RSS). Physical Raspberry Pi 4 deployment (target <= 1000 ms per PRD) is tracked as pending hardware run.
 result: pass
 
 ### 5. Repository Hygiene & Config Separation

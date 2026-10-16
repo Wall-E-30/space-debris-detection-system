@@ -85,9 +85,22 @@ def load_spark_csv(data_dir: Path):
                 key = re.sub(r"[^a-z0-9]", "", d.name.lower())
                 folder_lookup[key] = d
 
-    csv_files = [(data_dir / "train.csv", "train"), (data_dir / "val.csv", "val"),
-                (data_dir / "test.csv", "test")]
-    csv_files = [(p, split) for p, split in csv_files if p.exists()]
+    candidate_files = [
+        ("train.csv", "train"),
+        ("train_labels.csv", "train"),
+        ("val.csv", "val"),
+        ("validate.csv", "val"),
+        ("validate_labels.csv", "val"),
+        ("test.csv", "test"),
+        ("test_labels.csv", "test"),
+    ]
+    csv_files = []
+    seen_splits = set()
+    for fname, split in candidate_files:
+        p = data_dir / fname
+        if p.exists() and split not in seen_splits:
+            csv_files.append((p, split))
+            seen_splits.add(split)
     if not csv_files:
         return [], []
 
@@ -239,7 +252,8 @@ def detect_and_load(data_dir: Path, format_hint: str):
         return load_swisscube(data_dir)
 
     # auto
-    if (data_dir / "train.csv").exists() or (data_dir / "val.csv").exists():
+    spark_indicators = ["train.csv", "val.csv", "train_labels.csv", "validate_labels.csv", "test_labels.csv"]
+    if any((data_dir / f).exists() for f in spark_indicators):
         print("[detect] SPARK CSV format")
         return load_spark_csv(data_dir)
     if (data_dir / "swisscube_bbox.json").exists() or \
