@@ -6,7 +6,7 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 
 ## Phases
 
-- [ ] **Phase 1: Foundations, Evaluation Harness & Day-1 Audit** - Standalone `eval.py`, SPARK CSV audit, repo hygiene, and Pi environment verification.
+- [x] **Phase 1: Foundations, Evaluation Harness & Day-1 Audit** - Standalone `eval.py`, SPARK CSV audit, repo hygiene, and Pi environment verification.
 - [ ] **Phase 2: SPARK Dataset Preparation & Stratified Subsetting** - Build balanced Subset B (640px, subsampled 2–3:1) with train-split photometric augmentation.
 - [ ] **Phase 3: Baseline Edge Validation on Raspberry Pi** - Refactor benchmark protocol (≥100 runs, peak RSS) and measure SwissCube model on physical Pi 4.
 - [ ] **Phase 4: SPARK Model Training & Optimization** - Execute overnight YOLOv8-Nano 640px training on local RTX 2050 GPU and train 416px variant.

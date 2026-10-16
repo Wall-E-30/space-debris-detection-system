@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-16T13:39:00.550158+00:00",
+  "timestamp": "2026-10-16T14:03:15.474942+00:00",
   "platform": {
     "system": "Windows",
     "machine": "AMD64",
@@ -24,12 +24,12 @@
       "threads": 1,
       "runs": 100,
       "warmup": 10,
-      "inference_mean_ms": 179.44,
-      "inference_median_ms": 177.77,
-      "inference_p95_ms": 189.18,
-      "inference_std_ms": 5.65,
-      "fps": 5.6,
-      "peak_rss_mb": 204.56
+      "inference_mean_ms": 182.38,
+      "inference_median_ms": 180.07,
+      "inference_p95_ms": 191.49,
+      "inference_std_ms": 4.43,
+      "fps": 5.5,
+      "peak_rss_mb": 204.67
     },
     {
       "engine": "ONNX Runtime (CPU, threads=4)",
@@ -41,12 +41,12 @@
       "threads": 4,
       "runs": 100,
       "warmup": 10,
-      "inference_mean_ms": 77.64,
-      "inference_median_ms": 76.66,
-      "inference_p95_ms": 87.1,
-      "inference_std_ms": 4.5,
-      "fps": 12.9,
-      "peak_rss_mb": 206.96
+      "inference_mean_ms": 85.94,
+      "inference_median_ms": 84.16,
+      "inference_p95_ms": 97.62,
+      "inference_std_ms": 5.79,
+      "fps": 11.6,
+      "peak_rss_mb": 207.07
     }
   ]
 }

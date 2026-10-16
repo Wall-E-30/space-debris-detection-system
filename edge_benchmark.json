@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-14T13:04:09.651369+00:00",
+  "timestamp": "2026-10-16T14:03:15.474942+00:00",
   "platform": {
     "system": "Windows",
     "machine": "AMD64",
@@ -15,36 +15,38 @@
   },
   "benchmarks": [
     {
-      "engine": "ONNX Runtime (threads=1)",
+      "engine": "ONNX Runtime (CPU, threads=1)",
       "format": "onnx",
       "precision": "fp32",
       "model": "best.onnx",
+      "device": "cpu",
       "imgsz": 1024,
       "threads": 1,
       "runs": 100,
       "warmup": 10,
-      "inference_mean_ms": 186.31,
-      "inference_median_ms": 184.57,
-      "inference_p95_ms": 195.84,
-      "inference_std_ms": 7.38,
-      "fps": 5.4,
-      "peak_rss_mb": 204.68
+      "inference_mean_ms": 182.38,
+      "inference_median_ms": 180.07,
+      "inference_p95_ms": 191.49,
+      "inference_std_ms": 4.43,
+      "fps": 5.5,
+      "peak_rss_mb": 204.67
     },
     {
-      "engine": "ONNX Runtime (threads=4)",
+      "engine": "ONNX Runtime (CPU, threads=4)",
       "format": "onnx",
       "precision": "fp32",
       "model": "best.onnx",
+      "device": "cpu",
       "imgsz": 1024,
       "threads": 4,
       "runs": 100,
       "warmup": 10,
-      "inference_mean_ms": 70.77,
-      "inference_median_ms": 69.4,
-      "inference_p95_ms": 81.9,
-      "inference_std_ms": 5.85,
-      "fps": 14.1,
-      "peak_rss_mb": 206.82
+      "inference_mean_ms": 85.94,
+      "inference_median_ms": 84.16,
+      "inference_p95_ms": 97.62,
+      "inference_std_ms": 5.79,
+      "fps": 11.6,
+      "peak_rss_mb": 207.07
     }
   ]
 }
