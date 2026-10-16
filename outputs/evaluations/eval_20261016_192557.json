@@ -1,0 +1,93 @@
+{
+  "timestamp": "2026-10-16T13:55:57.039968+00:00",
+  "model_path": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\experiments\\spark_yolov8n_50e\\weights\\best.pt",
+  "data_path": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\configs\\spark.yaml",
+  "imgsz": 1024,
+  "split": "val",
+  "device": "0",
+  "map50": 0.995,
+  "map50_95": 0.9413,
+  "mp": 0.9996,
+  "mr": 0.9986,
+  "speed": {
+    "preprocess_ms": 8.63,
+    "inference_ms": 18.5,
+    "postprocess_ms": 3.64,
+    "total_ms": 30.77
+  },
+  "per_class": {
+    "Cheops": {
+      "class_id": 0,
+      "p": 0.9997,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9657
+    },
+    "LisaPathfinder": {
+      "class_id": 1,
+      "p": 0.9996,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9573
+    },
+    "ObservationSat1": {
+      "class_id": 2,
+      "p": 0.9993,
+      "r": 0.9992,
+      "map50": 0.995,
+      "map50_95": 0.9538
+    },
+    "Proba2": {
+      "class_id": 3,
+      "p": 0.9997,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9598
+    },
+    "Proba3": {
+      "class_id": 4,
+      "p": 0.9997,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9469
+    },
+    "Proba3ocs": {
+      "class_id": 5,
+      "p": 1.0,
+      "r": 0.9985,
+      "map50": 0.995,
+      "map50_95": 0.9526
+    },
+    "Smart1": {
+      "class_id": 6,
+      "p": 0.9983,
+      "r": 0.9902,
+      "map50": 0.995,
+      "map50_95": 0.8888
+    },
+    "Soho": {
+      "class_id": 7,
+      "p": 0.9999,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9254
+    },
+    "VenusExpress": {
+      "class_id": 8,
+      "p": 0.9999,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9278
+    },
+    "XMM Newton": {
+      "class_id": 9,
+      "p": 1.0,
+      "r": 0.998,
+      "map50": 0.995,
+      "map50_95": 0.9348
+    }
+  },
+  "size_mb": 6.29,
+  "params": null,
+  "gflops": null
+}
