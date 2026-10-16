@@ -173,7 +173,14 @@ def run_audit(
     print("=" * 80)
 
     # Locate CSVs
-    root_dir = Path(spark_dir) if spark_dir else Path("data/raw/SPARK2021")
+    if spark_dir and Path(spark_dir).exists():
+        root_dir = Path(spark_dir)
+    elif Path("data/raw/SPARK-2021").exists():
+        root_dir = Path("data/raw/SPARK-2021")
+    elif Path("data/raw/SPARK2021").exists():
+        root_dir = Path("data/raw/SPARK2021")
+    else:
+        root_dir = Path(spark_dir or "data/raw/SPARK-2021")
 
     def find_csv(explicit: Optional[str], default_candidates: List[str]) -> Optional[Path]:
         if explicit and Path(explicit).exists():
