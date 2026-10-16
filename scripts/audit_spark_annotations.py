@@ -40,10 +40,18 @@ def audit_csv(csv_path: Path) -> Tuple[int, int, Counter, List[str]]:
         reader = csv.DictReader(f)
         for row in reader:
             total_rows += 1
-            img_name = row.get("Image name", "").strip()
+            # Case-insensitive / alias column lookup
+            img_name = (
+                row.get("Image name") or row.get("image") or row.get("filename") or
+                row.get("image_name") or row.get("Image") or row.get("img") or ""
+            ).strip()
             if img_name:
                 unique_images.add(img_name)
-            cls_name = row.get("Class", "").strip()
+
+            cls_name = (
+                row.get("Class") or row.get("class") or row.get("label") or
+                row.get("class_name") or row.get("category") or row.get("name") or ""
+            ).strip()
             if cls_name:
                 class_counter[cls_name] += 1
 
@@ -193,8 +201,18 @@ def main():
         if not spark_dir.exists():
             raise FileNotFoundError(f"Provided --spark-dir does not exist: {spark_dir}")
 
-        train_matches = list(spark_dir.glob("**/train.csv")) + list(spark_dir.glob("train.csv"))
-        val_matches = list(spark_dir.glob("**/val.csv")) + list(spark_dir.glob("val.csv"))
+        train_matches = (
+            list(spark_dir.glob("**/train_labels.csv")) +
+            list(spark_dir.glob("**/train.csv")) +
+            list(spark_dir.glob("*train*.csv"))
+        )
+        val_matches = (
+            list(spark_dir.glob("**/validate_labels.csv")) +
+            list(spark_dir.glob("**/val_labels.csv")) +
+            list(spark_dir.glob("**/val.csv")) +
+            list(spark_dir.glob("*val*.csv")) +
+            list(spark_dir.glob("*validate*.csv"))
+        )
 
         if not train_csv and train_matches:
             train_csv = str(train_matches[0])
