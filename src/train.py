@@ -58,6 +58,18 @@ def main():
         default="configs/swisscube.yaml",
         help="Path to dataset YAML configuration file (default: configs/swisscube.yaml)",
     )
+    parser.add_argument(
+        "--save-period",
+        type=int,
+        default=5,
+        help="Save checkpoint every X epochs (default: 5, enables epoch5.pt, epoch10.pt, etc.)",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        default=False,
+        help="Resume interrupted training from the last saved checkpoint (weights/last.pt)",
+    )
     parser.add_argument("--exist-ok", action="store_true", default=False, help="Overwrite existing experiment directory")
     args = parser.parse_args()
 
@@ -110,30 +122,31 @@ def main():
         raise FileNotFoundError(f"Dataset images not found in {dataset_dir}")
 
     # Step 1: Run Photometric Augmentation Handoff (Noise, Blur, Brightness Shift)
-    print("\n" + "=" * 60)
-    print(" [Step 1/2] Wiring & Running Photometric Augmentation Pipeline")
-    print("=" * 60)
+    if not args.resume:
+        print("\n" + "=" * 60)
+        print(" [Step 1/2] Wiring & Running Photometric Augmentation Pipeline")
+        print("=" * 60)
 
-    img_dir = dataset_dir / "images" / "train"
-    existing_aug = list(img_dir.glob("aug1_*")) if img_dir.exists() else []
+        img_dir = dataset_dir / "images" / "train"
+        existing_aug = list(img_dir.glob("aug1_*")) if img_dir.exists() else []
 
-    if len(existing_aug) == 0 and args.augment_copies > 0:
-        print(f"Applying photometric augmentation ({args.augment_copies} copy/copies per image)...")
-        print(" [Tip: To bypass offline image generation and train immediately, use '--augment-copies 0']")
-        augmenter = SpaceImageAugmenter(
-            brightness_range=(0.7, 1.3),
-            contrast_range=(0.7, 1.3),
-            blur_radius_range=(0.0, 2.0),
-            noise_sigma_range=(2.0, 12.0),
-            p_brightness_contrast=0.6,
-            p_blur=0.5,
-            p_noise=0.5,
-            seed=42
-        )
-        n_imgs, n_lbls = run_augmentation(dataset_dir, "train", args.augment_copies, augmenter)
-        print(f"Photometric Augmentation Complete: {n_imgs} augmented images generated in {img_dir}.")
-    else:
-        print(f"Photometric augmentation verified. Found {len(existing_aug)} existing augmented images in dataset.")
+        if len(existing_aug) == 0 and args.augment_copies > 0:
+            print(f"Applying photometric augmentation ({args.augment_copies} copy/copies per image)...")
+            print(" [Tip: To bypass offline image generation and train immediately, use '--augment-copies 0']")
+            augmenter = SpaceImageAugmenter(
+                brightness_range=(0.7, 1.3),
+                contrast_range=(0.7, 1.3),
+                blur_radius_range=(0.0, 2.0),
+                noise_sigma_range=(2.0, 12.0),
+                p_brightness_contrast=0.6,
+                p_blur=0.5,
+                p_noise=0.5,
+                seed=42
+            )
+            n_imgs, n_lbls = run_augmentation(dataset_dir, "train", args.augment_copies, augmenter)
+            print(f"Photometric Augmentation Complete: {n_imgs} augmented images generated in {img_dir}.")
+        else:
+            print(f"Photometric augmentation verified. Found {len(existing_aug)} existing augmented images in dataset.")
 
     # Step 2: Configure Device & YOLOv8 Space Domain Training
     print("\n" + "=" * 60)
@@ -147,31 +160,48 @@ def main():
     device_name = torch.cuda.get_device_name(0) if str(device) == "0" and torch.cuda.is_available() else "CPU"
     print(f"Training Device: {device} ({device_name})")
     print(f"Base Weights:    {args.weights}")
+    print(f"Save Checkpoint: Every {args.save_period} epochs + last.pt + best.pt")
 
-    model = YOLO(args.weights)
+    if args.resume:
+        checkpoint_path = Path(args.weights)
+        if not checkpoint_path.exists() or args.weights == "yolov8n.pt":
+            candidate = repo_root / "experiments" / args.name / "weights" / "last.pt"
+            if candidate.exists():
+                checkpoint_path = candidate
+            else:
+                raise FileNotFoundError(
+                    f"Resume checkpoint not found. Looked for '{candidate}' and '{args.weights}'."
+                )
+        print(f"\n[INFO] Resuming training from checkpoint: {checkpoint_path}")
+        model = YOLO(str(checkpoint_path))
+        results = model.train(resume=True)
+    else:
+        model = YOLO(args.weights)
 
-    # Space-domain hyperparameter augmentations
-    results = model.train(
-        data=str(data_config.resolve().as_posix()),
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        cache=True,
-        workers=4,
-        amp=True,
         # Space-domain hyperparameter augmentations
-        degrees=180.0,   # Full 360-degree rotation invariance for tumbling space objects
-        flipud=0.5,      # Vertical flip (zero-gravity environment)
-        fliplr=0.5,      # Horizontal flip
-        hsv_h=0.015,     # Color jitter
-        hsv_s=0.7,       # Saturation jitter
-        hsv_v=0.4,       # Brightness/exposure jitter
-        erasing=0.4,     # Random erasing for self-occlusion & antenna/panel obscuration
-        project=str((repo_root / "experiments").resolve().as_posix()),
-        name=args.name,
-        exist_ok=args.exist_ok,
-        device=device
-    )
+        results = model.train(
+            data=str(data_config.resolve().as_posix()),
+            epochs=args.epochs,
+            imgsz=args.imgsz,
+            batch=args.batch,
+            cache=True,
+            workers=4,
+            amp=True,
+            save=True,
+            save_period=args.save_period,
+            # Space-domain hyperparameter augmentations
+            degrees=180.0,   # Full 360-degree rotation invariance for tumbling space objects
+            flipud=0.5,      # Vertical flip (zero-gravity environment)
+            fliplr=0.5,      # Horizontal flip
+            hsv_h=0.015,     # Color jitter
+            hsv_s=0.7,       # Saturation jitter
+            hsv_v=0.4,       # Brightness/exposure jitter
+            erasing=0.4,     # Random erasing for self-occlusion & antenna/panel obscuration
+            project=str((repo_root / "experiments").resolve().as_posix()),
+            name=args.name,
+            exist_ok=args.exist_ok,
+            device=device
+        )
 
     # -------------------------------------------------------------
     # Persistent Training Run Archiving (outputs/training/)
