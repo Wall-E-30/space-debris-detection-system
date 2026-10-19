@@ -46,10 +46,15 @@ def hamming_distance(h1: int, h2: int) -> int:
     return bin(h1 ^ h2).count("1")
 
 
+from concurrent.futures import ThreadPoolExecutor
+
+
 def audit_splits(
     dataset_dir: Path,
     samples_per_class: int = 50,
+    train_samples: int = 5000,
     threshold: int = 3,
+    threads: int = 8,
     seed: int = 42
 ) -> Dict[str, Any]:
     random.seed(seed)
@@ -62,45 +67,49 @@ def audit_splits(
         )
 
     image_exts = {".jpg", ".jpeg", ".png", ".bmp"}
-    train_images = [p for p in train_dir.iterdir() if p.suffix.lower() in image_exts]
-    test_images = [p for p in test_dir.iterdir() if p.suffix.lower() in image_exts]
+    all_train = [p for p in train_dir.iterdir() if p.suffix.lower() in image_exts]
+    all_test = [p for p in test_dir.iterdir() if p.suffix.lower() in image_exts]
+
+    # Sample train images if requested to keep audit under 30-45 seconds
+    if 0 < train_samples < len(all_train):
+        train_pool = random.sample(all_train, train_samples)
+    else:
+        train_pool = all_train
+
+    sample_size = min(len(all_test), samples_per_class * 11)
+    sampled_test = random.sample(all_test, sample_size)
 
     print("\n" + "=" * 70)
     print("  SPARK-2021 TRAIN/TEST SPLIT LEAKAGE & DUPLICATE AUDIT")
-    print(f"  Dataset Directory: {dataset_dir}")
-    print(f"  Total Train Images: {len(train_images):,}")
-    print(f"  Total Test Images:  {len(test_images):,}")
-    print(f"  Test Sample Size:   {min(len(test_images), samples_per_class * 11):,}")
-    print(f"  Hamming Threshold:  <= {threshold} bits (out of 64)")
+    print(f"  Dataset Directory:    {dataset_dir}")
+    print(f"  Total Train Pool:     {len(all_train):,} (Auditing sample of {len(train_pool):,})")
+    print(f"  Total Test Pool:      {len(all_test):,} (Auditing sample of {len(sampled_test):,})")
+    print(f"  Parallel Workers:     {threads} threads")
+    print(f"  Hamming Threshold:    <= {threshold} bits (out of 64)")
     print("=" * 70 + "\n")
 
-    # Group train images by class prefix (or hash all if flat)
-    print("Computing hashes for train images...")
-    train_hashes: List[Tuple[str, int]] = []
-    # Build dictionary or sample for efficiency
-    for p in train_images:
+    def hash_single(path: Path) -> Tuple[str, int]:
         try:
-            h = compute_dhash(p)
-            train_hashes.append((p.name, h))
+            return path.name, compute_dhash(path)
         except Exception:
-            continue
+            return path.name, -1
 
-    print(f"[OK] Computed hashes for {len(train_hashes):,} train images.")
+    # Parallel hashing
+    print(f"Computing perceptual dHashes for {len(train_pool):,} train images ({threads} threads)...")
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        train_hashes = [item for item in executor.map(hash_single, train_pool) if item[1] != -1]
+    print(f"[OK] Hashed {len(train_hashes):,} train images.")
 
-    # Sample test images
-    sample_size = min(len(test_images), samples_per_class * 11)
-    sampled_test = random.sample(test_images, sample_size)
-    print(f"Auditing {len(sampled_test)} sampled test images against train pool...")
+    print(f"Computing perceptual dHashes for {len(sampled_test):,} test images ({threads} threads)...")
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        test_hashes = [item for item in executor.map(hash_single, sampled_test) if item[1] != -1]
+    print(f"[OK] Hashed {len(test_hashes):,} test images.\n")
 
+    print(f"Comparing test hashes against train pool (searching for near-duplicates <= {threshold} bits)...")
     near_duplicates = []
     min_distances = []
 
-    for idx, test_p in enumerate(sampled_test, 1):
-        try:
-            th = compute_dhash(test_p)
-        except Exception:
-            continue
-
+    for idx, (test_name, th) in enumerate(test_hashes, 1):
         best_dist = 64
         best_match = None
 
@@ -115,31 +124,33 @@ def audit_splits(
         min_distances.append(best_dist)
         if best_dist <= threshold:
             near_duplicates.append({
-                "test_image": test_p.name,
+                "test_image": test_name,
                 "train_match": best_match,
                 "hamming_distance": best_dist,
             })
 
-        if idx % 100 == 0 or idx == len(sampled_test):
-            print(f"  [{idx}/{len(sampled_test)}] Processed... (Found {len(near_duplicates)} near-duplicates so far)")
+        if idx % 100 == 0 or idx == len(test_hashes):
+            print(f"  [{idx}/{len(test_hashes)}] Checked... ({len(near_duplicates)} near-duplicates detected so far)")
 
-    leakage_rate = (len(near_duplicates) / len(sampled_test)) * 100.0 if sampled_test else 0.0
+    leakage_rate = (len(near_duplicates) / len(test_hashes)) * 100.0 if test_hashes else 0.0
     avg_min_distance = sum(min_distances) / len(min_distances) if min_distances else 0.0
 
     print("\n" + "=" * 70)
     print(f"  LEAKAGE AUDIT RESULTS:")
-    print(f"  Audited Samples:        {len(sampled_test)}")
+    print(f"  Audited Test Samples:   {len(test_hashes):,}")
+    print(f"  Audited Train Samples:  {len(train_hashes):,}")
     print(f"  Near-Duplicates Found:  {len(near_duplicates)}")
     print(f"  Estimated Leakage Rate: {leakage_rate:.2f}%")
-    print(f"  Mean Min Hamming Dist:  {avg_min_distance:.2f} bits")
+    print(f"  Mean Min Hamming Dist:  {avg_min_distance:.2f} bits (random image distance is ~32 bits)")
     print("=" * 70 + "\n")
 
     results = {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "dataset_dir": str(dataset_dir),
-        "total_train_images": len(train_images),
-        "total_test_images": len(test_images),
-        "audited_samples": len(sampled_test),
+        "total_train_images": len(all_train),
+        "total_test_images": len(all_test),
+        "audited_train_samples": len(train_hashes),
+        "audited_test_samples": len(test_hashes),
         "hamming_threshold": threshold,
         "near_duplicates_count": len(near_duplicates),
         "leakage_rate_pct": round(leakage_rate, 2),
@@ -160,8 +171,16 @@ def audit_splits(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Audit dataset for train/test split leakage.")
     parser.add_argument("--data-dir", type=str, default="data/processed/spark2021", help="Path to processed dataset directory")
-    parser.add_argument("--samples-per-class", type=int, default=50, help="Test images sampled per class (default: 50)")
+    parser.add_argument("--samples-per-class", type=int, default=50, help="Test images sampled per class (default: 50 -> 550 test images)")
+    parser.add_argument("--train-samples", type=int, default=5000, help="Train images sampled for pool (default: 5000, 0 for all 90k)")
     parser.add_argument("--threshold", type=int, default=3, help="Max Hamming distance to flag near-duplicate (default: 3)")
+    parser.add_argument("--threads", type=int, default=8, help="Parallel worker threads (default: 8)")
     args = parser.parse_args()
 
-    audit_splits(Path(args.data_dir), args.samples_per_class, args.threshold)
+    audit_splits(
+        dataset_dir=Path(args.data_dir),
+        samples_per_class=args.samples_per_class,
+        train_samples=args.train_samples,
+        threshold=args.threshold,
+        threads=args.threads
+    )
