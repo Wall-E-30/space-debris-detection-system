@@ -33,10 +33,10 @@ This document records major technical, architectural, and deployment decisions f
 
 1. **Model Selection:** `YOLOv8n` (Nano) selected as baseline due to lightweight parameter footprint (~3.0M parameters, 8.2 GFLOPs) ideal for real-time edge execution.
 2. **GPU Acceleration & Dataloader Optimization:**
-   - Default CPU training (~34 hrs/5 epochs) migrated to **NVIDIA RTX 2050 GPU (CUDA)**.
-   - Enabled dataset RAM caching (`cache=True`) to eliminate disk I/O bottleneck (`Slow image access detected`).
+   - Default CPU training (~34 hrs/5 epochs) migrated to **NVIDIA RTX 2050 GPU (CUDA)** for preliminary prototyping.
+   - Enabled dataset RAM caching (`cache=True`) to eliminate disk I/O bottlenecks.
    - Mixed precision (`amp=True`) and 4 dataloader workers (`workers=4`) enabled.
-   - Reduced 5-epoch training time to **~8–10 minutes**.
+   - *[Historical Correction: Initial speculative estimate was ~8–10 minutes; actual measured RTX 2050 5-epoch training duration was 5,441 seconds (~90.7 minutes). In Phase 2, deep 50-epoch training was transitioned to the departmental 32 GB NVIDIA Quadro GV100 workstation (DEC-06 / DEC-10).]*
 
 ---
 
@@ -55,11 +55,11 @@ This document records major technical, architectural, and deployment decisions f
 
 ## 4. Object Taxonomy & Dataset Strategy
 
-_(Detailed taxonomy analysis and Superclass mapping log available in [`data/decisions.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/decisions.md))_
+> [!NOTE]
+> **SUPERSEDED by DEC-10:** The preliminary collapsed 3-class proposal (`satellite`, `debris`, `rocket_body`) and focal loss plan was superseded by the SPARK-2021 11-class ground-truth taxonomy (10 satellites + 1 synthetic debris class). See DEC-10.
 
-- **Target Classes:** `satellite`, `debris`, `rocket_body`.
-- **v1 Taxonomy Strategy:** Collapsed multi-spacecraft classes into `satellite` superclass; `debris` mapped 1:1. Deferred `rocket_body` synthesis to v2/stretch goals.
-- **Class Imbalance Mitigation:** Carried over ~10x satellite to debris ratio; focal loss / class-weighted loss scheduled for Week 2-3 training.
+- **Preliminary Strategy (Superseded):** Collapsed multi-spacecraft classes into `satellite` superclass; `debris` mapped 1:1. Deferred `rocket_body` synthesis to v2/stretch goals.
+- **Active Strategy (DEC-10):** Full 11-class training on SPARK-2021 (10 satellite classes + consolidated synthetic debris class across 25,000 ground truth annotations).
 
 ---
 
@@ -73,7 +73,7 @@ Synthetic satellite imagery (SPARK, SwissCube) exhibits clean rendering artifact
 
 1. **Photometric-Only Transforms:** Implemented `src/data/augment.py` using composable photometric adjustments (brightness/contrast jitter, Gaussian blur, sensor read noise). Because pixel positions are unchanged, bounding box annotations remain 100% invariant and require no coordinate recalculations.
 2. **Strict Split Isolation:** Augmentations are applied exclusively to training splits (`train/`); validation and test sets remain unaltered to guarantee uncorrupted metric evaluation.
-3. **Cross-Team Handoff:** Verified pipeline and handed off to Person A with parameterized CLI and programmatic `SpaceImageAugmenter` class.
+3. **Distinction from Online Training Augmentations:** The offline photometric pipeline (`src/data/augment.py`) is decoupled from the online geometric augmentations in `src/train.py` (`degrees=180`, `flipud=0.5`, `erasing=0.4`), where coordinate transforms are handled on-the-fly by the Ultralytics training engine.
 
 ---
 
@@ -81,32 +81,35 @@ Synthetic satellite imagery (SPARK, SwissCube) exhibits clean rendering artifact
 
 ### Architecture & Mechanics
 
-Integrated a real-time orbit propagation pipeline (`src/data/tle_pipeline.py`) downstream of YOLO object detection to calculate relative Euclidean distances between space objects in 3D space.
+An independent orbital propagation pipeline (`src/data/tle_pipeline.py`) operates as a decoupled catalog layer alongside the vision detector.
 
 ```
-+-------------------+      Class Mapping       +----------------------+
-|  YOLOv8 Detection | -----------------------> |  NORAD ID Resolution |
-+-------------------+                          +----------------------+
-                                                          |
-                                                          v
-+-------------------+      SGP4 Propagation    +----------------------+
-|  CelesTrak TLEs   | -----------------------> |  3D Geocentric XYZ   |
-|   (Live / GP)     |                          |   Coordinates (km)   |
-+-------------------+                          +----------------------+
-                                                          |
-                                                          v
-                                               +----------------------+
-                                               |  Euclidean Distance  |
-                                               |   & Conjunction Risk |
-                                               +----------------------+
++---------------------------------------+      +------------------------------------------+
+|       Optical Vision Subsystem        |      |   Independent Orbital Catalog Subsystem  |
+|  YOLOv8 Detection (BBox + Class)      |      |   Live CelesTrak TLEs (Active Catalog)   |
++---------------------------------------+      +------------------------------------------+
+                   |                                                 |
+                   v                                                 v
+         Detected Class Label                      SGP4 Orbit Propagation (Known Satellites)
+                   |                                                 |
+                   +---------> [ NORAD Lookup ] -------------------> 3D Geocentric XYZ (km)
+                                     |                                       |
+                   +-----------------+-------------------+                   v
+                   |                                     |           Euclidean Distance
+                   v                                     v           & Conjunction Risk
+          Known Spacecraft Class                   Debris Class
+          (e.g., AcrimSat, Sentinel-6)             (UNCATALOGED)
+                   |                                     |
+                   v                                     v
+          Catalog ID Resolved                      NO NORAD ID Exists
+          SGP4 Position Calculated                 SGP4 Propagation Unsupported
 ```
 
 ### Decisions
 
-1. **Live Ephemeris Fetching:** Skyfield fetches live General Perturbations (GP) Two-Line Element Sets (TLEs) directly from CelesTrak (`GROUP=active&FORMAT=tle`), indexing into an in-memory NORAD catalog.
-2. **NORAD ID Mapping & Historical Proxies:** Created a lookup table mapping detected classes (e.g., `Cheops`, `LisaPathfinder`, `Proba2`, `ObservationSat1`) to catalog IDs, utilizing active LEO proxies for deep space / historical assets to ensure valid SGP4 orbit propagation.
-3. **Relative Distance Calculation:** Resolved geocentric position vectors $(X, Y, Z)$ in kilometers at UTC timestamps and calculated Euclidean separation:
-   $$\text{Distance} = \|\mathbf{P}_{\text{satA}} - \mathbf{P}_{\text{satB}}\|_2$$
+1. **Decoupled Catalog Architecture:** The vision detector cannot deterministically resolve orbital ephemeris from a 2D bounding box alone. The TLE module is an **independent catalog layer** that maps identified spacecraft models to candidate NORAD IDs.
+2. **Uncataloged Space Debris Limitation:** **Synthetic space debris has NO catalog ID in CelesTrak.** The TLE layer explicitly cannot propagate or predict orbits for uncataloged debris fragments without prior radar or multi-station optical state vector estimation.
+3. **SPARK-2021 Class Mapping:** Updated the catalog mapping from deprecated Phase 1 classes to active SPARK-2021 spacecraft assets (`AcrimSat`: 26032, `Aquarius`: 37673, `Aura`: 28376, `Calipso`: 29108, `Cloudsat`: 29107, `CubeSat`: 25544 proxy, `Jason`: 26997, `Sentinel-6`: 46984, `Terra`: 25994, `TRMM`: 25063).
 
 ---
 
@@ -129,17 +132,16 @@ Developed `edge/export.py` to automate conversion of trained PyTorch weights (`b
 
 ## 8. Empirical Edge Benchmarking & Latency Analysis
 
-### Benchmark Methodology (`edge/benchmark.py`)
+> [!WARNING]
+> **SUPERSEDED by Phase 1 Rigorous Benchmark Suite & DEC-01:** The preliminary 30–50 iteration smoke test below with an uncalibrated memory measurement (~0.0 MB RSS) has been superseded by the research-grade `edge/benchmark.py` harness enforcing $\ge 10$ discarded warmup runs, $\ge 100$ timed runs, CPU thread pinning, and whole-process peak RSS profiling via `psutil`.
 
-Inference throughput and latency were empirically evaluated on local CPU (640x640 resolution, 5 warmup passes, 30-50 iterations) evaluating thread scaling (`threads=1`, `threads=4`) and process memory footprint via `psutil`.
+### Historical Smoke Test (Superseded)
 
-### Empirical Results Summary
-
-| Engine           | Thread Config | Mean Latency  | p95 Latency   | Throughput (FPS) | Memory Footprint (RAM) |
-| ---------------- | ------------- | ------------- | ------------- | ---------------- | ---------------------- |
-| **ONNX Runtime** | `threads=1`   | 223.20 ms     | 385.64 ms     | 4.5 FPS          | ~0.0 MB RSS            |
-| **ONNX Runtime** | `threads=4`   | 209.71 ms     | 226.12 ms     | 4.8 FPS          | ~0.0 MB RSS            |
-| **NCNN**         | `threads=4`   | **165.21 ms** | **178.48 ms** | **6.1 FPS**      | **~10.9 MB RSS**       |
+| Engine           | Thread Config | Mean Latency  | p95 Latency   | Throughput (FPS) | Memory Footprint (RAM) | Status |
+| ---------------- | ------------- | ------------- | ------------- | ---------------- | ---------------------- |:---:|
+| **ONNX Runtime** | `threads=1`   | 223.20 ms     | 385.64 ms     | 4.5 FPS          | ~0.0 MB RSS            | *Superseded* |
+| **ONNX Runtime** | `threads=4`   | 209.71 ms     | 226.12 ms     | 4.8 FPS          | ~0.0 MB RSS            | *Superseded* |
+| **NCNN**         | `threads=4`   | **165.21 ms** | **178.48 ms** | **6.1 FPS**      | **~10.9 MB RSS**       | *Superseded* |
 
 ### Key Takeaways & Validation
 
@@ -179,43 +181,73 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 9. `VenusExpress` (8,000)
 10. `XMM Newton` (8,000)
 
-### Decision & Project Alignment (Adoption of Branch B)
+### Decision & Project Alignment (Historical Adoption of Branch B)
 
-1. **Finding F1 Confirmed:** The raw SPARK dataset contains **zero annotated debris fragments**. It is strictly a 10-class spacecraft dataset featuring 10 operational satellites and deep-space probes under varied space lighting conditions.
-2. **Adoption of Branch B:**
-   - **Primary Quantitative Model (Phases 2–7):** Formally defined as **10-class spacecraft detection and classification** (`yolov8n` trained on balanced Subset B at 1024ox). All quantitative evaluation metrics (mAP@0.5, mAP@0.5:0.95, per-class P/R, edge latency on Raspberry Pi 4) are grounded on this real 10-class dataset.
-   - **Debris Coverage (Phase 8–9):** True space debris (small fragments, mission-related debris, rocket bodies) will be demonstrated **qualitatively** using real-world public orbital imagery (SPEED+ / PRISMA rendezvous imagery).
-   - **Transparency & Integrity:** The project report and evaluation presentations will document this empirical finding openly, highlighting that real-world edge deployment requires multi-target tracking across active payloads and defunct assets.
+1. **Finding F1 Confirmed:** The initial SPARK release evaluated in Phase 1 contained **zero annotated debris fragments**. It was strictly a 10-class spacecraft dataset.
+2. **Phase 1 Branch B Lock:** Formally defined as 10-class spacecraft detection for Phase 1 baseline reproducibility.
+3. **Superseded by DEC-10:** Ground-truth space debris detection was subsequently restored via the SPARK-2021 dataset.
 
 ---
 
-## DEC-07: Transition to SPARK-2021 11-Class Dataset (Ground-Truth Debris Integration)
+## DEC-05: TLE Independent Catalog Layer & Uncataloged Debris Limitation
+
+**Date:** 2026-10-14  
+**Author:** Software Architecture Lead  
+**Status:** Decided & Locked  
+
+1. **Decoupled Architecture:** Optical 2D bounding box detection cannot deterministically resolve 3D orbital state vectors. The TLE subsystem operates as an **independent catalog layer** mapping identified operational satellite classes to candidate NORAD IDs.
+2. **Debris Limitation:** **Synthetic space debris has NO catalog ID in CelesTrak.** The TLE pipeline cannot perform SGP4 propagation or conjunction analysis for uncataloged debris fragments without prior multi-station orbit determination.
+
+---
+
+## DEC-06: Compute Hardware Allocation Strategy
+
+**Date:** 2026-10-16  
+**Author:** Systems Lead  
+**Status:** Decided & Locked  
+
+1. **Local Host (NVIDIA RTX 2050 4GB / Intel Core i5-11400H):** Dedicated to dataset audits, preprocessing, unit test harnesses, and local development proxies.
+2. **Compute Workstation (NVIDIA Quadro GV100 32GB / 16-Core Xeon):** Dedicated to high-resolution (1024 px) multi-class deep training (50+ epochs) and high-throughput batch evaluation.
+3. **Target Edge Hardware (Raspberry Pi 4B 4GB / Cortex-A72):** Dedicated to physical embedded verification against the PRD target ($\le 1000\text{ ms}$).
+
+---
+
+## DEC-07: Model Input Resolution & Multi-Scale Trade-off Strategy
+
+**Date:** 2026-10-17  
+**Author:** ML & Edge Systems Team  
+**Status:** Decided & Locked  
+
+1. **Primary High-Resolution Training (1024x1024 px):** Adopted for deep training on the 32 GB Quadro GV100 to maximize feature extraction for small orbital bodies (CubeSat, debris fragments).
+2. **Multi-Scale Evaluation Trade-off:** While 1024 px is primary, the model is evaluated across multiple resolutions (640 px, 800 px, 1024 px) to measure the explicit accuracy-vs-latency trade-off without mandatory retraining.
+3. **Edge Feasibility Constraint:** Recognizing that 1024 px requires $\sim 2.5\times$ the FLOPs of 640 px, the physical Raspberry Pi 4 edge benchmark will evaluate both 640 px and 1024 px to assess compliance with the $\le 1000\text{ ms}$ latency gate.
+
+---
+
+## DEC-10: Transition to SPARK-2021 11-Class Dataset (Synthetic Debris Integration)
 
 **Date:** 2026-10-19  
 **Author:** ML & Edge Systems Team  
 **Status:** Decided & Executed (`supersedes DEC-04 Branch B`)  
 **Evidence Artifacts:**
-
 - Dataset Audit: `outputs/audits/latest_spark2021.json`
 - Training Run: `experiments/spark2021_yolov8n_50e`
 - Evaluation Reports: `outputs/evaluations/spark2021_val_metrics.json`, `outputs/evaluations/spark2021_test_metrics.json`
 - Edge Benchmark: `outputs/benchmarks/spark2021_onnx_benchmark.json`
 
-### Empirical Findings
-
-1. **Resolution of Debris Deficiency:** While the initial release of SPARK evaluated in Phase 1 contained zero debris annotations (DEC-04), the complete **SPARK-2021 dataset** contains **25,000 confirmed debris annotations** across 5 geometric debris types alongside 125,000 satellite annotations across 10 spacecraft classes (150,000 images total).
+### Empirical Findings:
+1. **Resolution of Debris Deficiency:** While the initial release of SPARK evaluated in Phase 1 contained zero debris annotations (DEC-04), the official **SPARK-2021 dataset** contains **25,000 confirmed debris annotations** across 5 synthetic geometric debris types alongside 125,000 satellite annotations across 10 spacecraft classes (150,000 images total).
 2. **11-Class Model Convergence:** A 50-epoch deep training run on an NVIDIA Quadro GV100 (`spark2021_yolov8n_50e`) converged cleanly to:
    - Overall Test mAP@50: **99.02%**
    - Overall Test mAP@50-95: **86.98%**
-   - **Debris Class (Class 6) Test Precision:** **97.75%**
-   - **Debris Class (Class 6) Test Recall:** **97.34%**
-   - **Debris Class (Class 6) Test mAP@50:** **98.34%**
-   - **Debris Class (Class 6) Test mAP@50-95:** **85.39%**
-3. **Edge Optimization:** The model was successfully compiled to ONNX FP32 (67.54 ms latency / 14.8 FPS on 4 CPU threads) and NCNN (`best_ncnn_model/`), providing dual runtime deployment readiness for the Raspberry Pi 4.
+   - **Synthetic Debris Class (Class 6) Test Precision:** **97.75%**
+   - **Synthetic Debris Class (Class 6) Test Recall:** **97.34%**
+   - **Synthetic Debris Class (Class 6) Test mAP@50:** **98.34%**
+   - **Synthetic Debris Class (Class 6) Test mAP@50-95:** **85.39%**
+3. **Edge Optimization:** The model was successfully compiled to ONNX FP32 (67.54 ms latency / 14.8 FPS on 4 CPU threads on 16-core workstation) and NCNN (`best_ncnn_model/`), providing dual runtime deployment readiness for the Raspberry Pi 4.
 
 ### Architectural Decision:
-
-- **Supersession of Branch B:** The project returns to its primary original objective: quantitative detection and edge tracking of both **operational spacecraft AND genuine space debris**.
+- **Supersession of Branch B:** The project returns to its primary original objective: quantitative detection and edge tracking of both **operational spacecraft AND synthetic space debris**.
 - **Dataset Contract:** `configs/spark2021.yaml` (11 classes) is established as the primary dataset contract moving forward.
 
 ---

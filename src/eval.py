@@ -136,6 +136,16 @@ def evaluate_model(
         except Exception as e:
             print(f"[warn] Could not extract model.info: {e}")
 
+    # Extract confusion matrix array
+    try:
+        if hasattr(results, "confusion_matrix") and results.confusion_matrix is not None:
+            cm = results.confusion_matrix.matrix
+            if cm is not None:
+                metrics["confusion_matrix"] = cm.tolist()
+                print(f"[OK] Extracted confusion matrix: {cm.shape[0]}x{cm.shape[1]}")
+    except Exception as e:
+        print(f"[warn] Could not extract confusion matrix: {e}")
+
     # Output to stdout summary
     print("\n" + "-" * 50)
     print("  STANDALONE EVALUATION SUMMARY")

@@ -60,12 +60,9 @@ The dataset was audited using `scripts/audit_spark_annotations.py` (record: `out
 - **Epochs:** 50
 - **Training Time:** 122,183 seconds (~33.94 hours)
 - **Optimizer:** Auto (SGD with momentum 0.937, weight decay 0.0005)
-- **Space-Domain Augmentations Active:**
-  - Full $360^\circ$ rotation invariance (`degrees=180.0`)
-  - Vertical flip (`flipud=0.5`) and Horizontal flip (`fliplr=0.5`)
-  - Color, saturation, and exposure jitter (`hsv_h=0.015`, `hsv_s=0.7`, `hsv_v=0.4`)
-  - Random erasing for antenna/panel self-occlusion (`erasing=0.4`)
-  - Mosaic augmentation closed for final 10 epochs (`close_mosaic=10`)
+- **Augmentation Disclosure & Distinction:**
+  - **Online Augmentations (Active):** Full $360^\circ$ rotation invariance (`degrees=180.0`), vertical flip (`flipud=0.5`), horizontal flip (`fliplr=0.5`), random erasing (`erasing=0.4`), and color/saturation/exposure jitter (`hsv_h=0.015`, `hsv_s=0.7`, `hsv_v=0.4`).
+  - **Offline Photometric Pipeline (`src/data/augment.py`):** **NOT executed** on the 90,000 raw training images prior to this 50-epoch run. While online HSV jitter was active, domain-gap mitigation via synthetic Gaussian sensor read noise and optical blur was not applied to this run and remains an open optimization.
 - **Checkpointing Protocol:** Saved every 5 epochs (`epoch5.pt`, `epoch10.pt`, ..., `epoch45.pt`, `epoch50.pt`, `last.pt`, `best.pt`).
 
 ### Loss & Metric Convergence Progression:
@@ -83,22 +80,19 @@ The dataset was audited using `scripts/audit_spark_annotations.py` (record: `out
 
 ## 4. Evaluation Results: Validation vs. Held-Out Test Set
 
-The model was evaluated using the standalone evaluation harness ([`src/eval.py`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/eval.py)) on both the validation split (30,000 images) and the unpolluted frozen test split (30,000 images).
+The model was evaluated using the standalone evaluation harness ([`src/eval.py`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/eval.py)) on both the validation split (30,000 images) and the frozen held-out test split (30,000 images).
 
 ### 4.1 Overall Dataset Performance Comparison
 
 | Metric | Validation Set (`val`, 30k images) | Frozen Test Set (`test`, 30k images) | Generalization Assessment |
 |---|:---:|:---:|---|
 | **mAP@50** | **98.94%** (0.9894) | **99.02%** (0.9902) | Stable, zero degradation |
-| **mAP@50-95** (Headline) | **86.86%** (0.8686) | **86.98%** (0.8698) | Exceptional spatial localization |
+| **mAP@50-95** (Headline) | **86.86%** (0.8686) | **86.98%** (0.8698) | High spatial localization across IoU thresholds |
 | **Mean Precision ($P$)** | **98.68%** (0.9868) | **98.78%** (0.9878) | Extremely low false positive rate |
 | **Mean Recall ($R$)** | **97.45%** (0.9745) | **97.87%** (0.9787) | Minimal missed targets |
 | **GPU Preprocess Latency** | 3.49 ms | 3.36 ms | Consistent pipeline timing |
 | **GPU Inference Latency** | 3.61 ms | 3.57 ms | Real-time capability on GPU |
 | **GPU Total Latency** | 8.13 ms (123 FPS) | 7.96 ms (125 FPS) | High-throughput batch inference |
-
-> [!NOTE]
-> The test set metrics (86.98% mAP@50-95) slightly exceed the validation set metrics (86.86% mAP@50-95). This confirms that `best.pt` did not overfit to the validation split and generalizes solidly to unseen orbital imagery.
 
 ---
 
@@ -106,35 +100,36 @@ The model was evaluated using the standalone evaluation harness ([`src/eval.py`]
 
 Evidence: `outputs/evaluations/spark2021_test_metrics.json`
 
-| Class ID | Class Name | Category | Precision ($P$) | Recall ($R$) | mAP@50 | mAP@50-95 | Qualitative Notes |
+| Class ID | Class Name | Category | Precision ($P$) | Recall ($R$) | mAP@50 | mAP@50-95 | Empirical Data Notes |
 |:---:|---|---|:---:|:---:|:---:|:---:|---|
-| 0 | `AcrimSat` | Spacecraft | 0.9953 | 1.0000 | 0.9950 | 0.9509 | Perfect recall |
-| 1 | `Aquarius` | Spacecraft | 0.9940 | 0.9900 | 0.9948 | 0.9297 | Sharp solar array detection |
-| 2 | `Aura` | Spacecraft | 0.9960 | 0.9961 | 0.9950 | 0.9380 | Robust under high contrast |
-| 3 | `Calipso` | Spacecraft | 0.9758 | 0.9920 | 0.9948 | 0.9133 | Consistent bounding boxes |
-| 4 | `Cloudsat` | Spacecraft | 0.9981 | 0.9460 | 0.9934 | 0.8625 | Radar antenna handled well |
-| 5 | `CubeSat` | Spacecraft | 0.9622 | 0.9368 | 0.9698 | 0.6341 | Smallest spatial scale among satellites |
-| **6** | **`Debris`** | **Space Debris** | **0.9775** | **0.9734** | **0.9834** | **0.8539** | **Primary Mission Target: High Accuracy** |
+| 0 | `AcrimSat` | Spacecraft | 0.9953 | 1.0000 | 0.9950 | 0.9509 | Highly symmetric body, perfect recall |
+| 1 | `Aquarius` | Spacecraft | 0.9940 | 0.9900 | 0.9948 | 0.9297 | Distinct solar array geometry |
+| 2 | `Aura` | Spacecraft | 0.9960 | 0.9961 | 0.9950 | 0.9380 | High feature contrast |
+| 3 | `Calipso` | Spacecraft | 0.9758 | 0.9920 | 0.9948 | 0.9133 | Consistent aspect ratio |
+| 4 | `Cloudsat` | Spacecraft | 0.9981 | 0.9460 | 0.9934 | 0.8625 | Dish antenna features recognized |
+| 5 | `CubeSat` | Spacecraft | 0.9622 | 0.9368 | 0.9698 | **0.6341** | **Weakest class: smallest physical pixel area** |
+| **6** | **`Debris`** | **Synthetic Debris** | **0.9775** | **0.9734** | **0.9834** | **0.8539** | **Target Class: Polymorphic across 5 models** |
 | 7 | `Jason` | Spacecraft | 0.9941 | 0.9988 | 0.9950 | 0.9173 | High confidence across angles |
-| 8 | `Sentinel-6` | Spacecraft | 0.9960 | 0.9920 | 0.9950 | 0.8993 | Complex tent-roof geometry recognized |
+| 8 | `Sentinel-6` | Spacecraft | 0.9960 | 0.9920 | 0.9950 | 0.8993 | Characteristic tent-roof shape |
 | 9 | `Terra` | Spacecraft | 0.9846 | 0.9452 | 0.9812 | 0.8916 | Large satellite body, reliable bounds |
-| 10 | `TRMM` | Spacecraft | 0.9924 | 0.9951 | 0.9948 | 0.7776 | Occlusion-tolerant tracking |
+| 10 | `TRMM` | Spacecraft | 0.9924 | 0.9951 | 0.9948 | **0.7776** | **Second weakest: elongated solar wing bounds** |
 | **--** | **ALL CLASSES (Mean)** | **Multi-Target** | **0.9878** | **0.9787** | **0.9902** | **0.8698** | **Production-Grade Headline Score** |
 
 ---
 
-## 5. Debris Detection Deep-Dive
+## 5. Data-Driven Weak Class & Debris Analysis
 
-Prior to this training run, the system could only classify 10 known spacecraft models. The `Debris` class presents unique computer vision challenges:
-- Irregular, non-canonical shapes (broken panels, adapters, rocket fragments).
-- High aspect ratio variation and irregular tumbling dynamics.
-- Severe specular highlights and deep shadow self-occlusions in LEO/GEO conditions.
+Rather than speculating on optical artifacts, the performance discrepancies are directly grounded in the empirical bounding box and class geometry data:
 
-### Results on Debris (Class 6):
-- **Precision: 97.75%** — Only 2.25% of debris detections are false alarms (e.g. confusing background stars or Earth limbs with debris).
-- **Recall: 97.34%** — Detects over 97 out of every 100 debris instances present in the field of view.
-- **mAP@50: 98.34%** — Demonstrates nearly saturated detection confidence at standard IoU threshold.
-- **mAP@50-95: 85.39%** — Proves strong bounding box localization precision across strict IoU overlap thresholds ($0.50$ to $0.95$).
+1. **CubeSat (0.6341 mAP@50-95 — Weakest Class):**
+   - **Root Cause from Data:** CubeSat exhibits the smallest physical pixel bounding box area across the entire dataset ($< 100 \times 100$ px at standard camera distances).
+   - **Mechanism:** In YOLOv8, small objects allocate few grid points on the P3 feature map. While coarse detection presence is high (**96.98% mAP@50**), a boundary shift of just 3–5 pixels severely degrades strict intersection-over-union (IoU $\ge 0.75-0.95$), heavily penalizing mAP@50-95.
+2. **TRMM (0.7776 mAP@50-95 — Second Weakest Class):**
+   - **Root Cause from Data:** TRMM features wide cross-like solar panels and an extended radar dish.
+   - **Mechanism:** As TRMM tumbles, axis-aligned bounding boxes encompass large regions of empty black space between extended appendages. The resulting aspect-ratio variance increases boundary regression loss.
+3. **Synthetic Space Debris (Class 6: 0.8539 mAP@50-95):**
+   - **Root Cause from Data:** Unlike the other 10 classes which represent a single fixed spacecraft design each, `Debris` is a **polymorphic consolidated class** aggregating 5 separate 3D geometric debris models (adapters, rocket fragments, damaged panels).
+   - **Result:** The 85.39% mAP@50-95 reflects intra-class geometric diversity rather than tracking failure. Precision (97.75%) and Recall (97.34%) confirm that false alarms and misses are well-bounded.
 
 ---
 
@@ -146,26 +141,29 @@ The trained PyTorch checkpoint was exported to ONNX FP32 (`best.onnx`, 13.04 MB)
 
 | Engine / Config | Device | Threads | Mean Latency | Median Latency | p95 Latency | Throughput (FPS) | Peak RSS Memory | Platform Attribution |
 |---|---|:---:|---|---|---|:---:|---|---|
-| **ONNX Runtime** | CPU | 1 Thread | 172.63 ms | 170.94 ms | 182.03 ms | 5.8 FPS | 205.20 MB | Host CPU Proxy (Intel 16-Core) |
-| **ONNX Runtime** | **CPU** | **4 Threads** | **67.54 ms** | **66.13 ms** | **77.43 ms** | **14.8 FPS** | **207.18 MB** | **Host CPU Proxy (Intel 16-Core)** |
+| **ONNX Runtime** | CPU | 1 Thread | 172.63 ms | 170.94 ms | 182.03 ms | 5.8 FPS | 205.20 MB | Workstation CPU (16-Core Xeon) |
+| **ONNX Runtime** | **CPU** | **4 Threads** | **67.54 ms** | **66.13 ms** | **77.43 ms** | **14.8 FPS** | **207.18 MB** | **Workstation CPU (16-Core Xeon)** |
 | **NCNN Export** | ARM CPU | 4 Threads | *Pending Pi 4* | *Pending Pi 4* | *Pending Pi 4* | *--* | *--* | Target Edge Hardware (RPi 4) |
 
-### Key Benchmark Insights:
-1. **Speed Improvement:** Multi-thread ONNX latency dropped from **85.94 ms** (old baseline) to **67.54 ms**, delivering a throughput of **14.8 FPS at full 1024x1024 resolution**.
-2. **Strict Memory Compliance:** Peak memory remained at **207.18 MB**, comfortably under the project's edge target constraint of $\le 512\text{ MB}$.
-3. **Hardware Export Ready:** In addition to ONNX, the model is fully compiled to **NCNN binaries** (`model.ncnn.bin`, `model.ncnn.param` in `experiments/spark2021_yolov8n_50e/weights/best_ncnn_model/`), ready for direct physical transfer to the Raspberry Pi 4.
+> [!WARNING]
+> ### Rigorous Hardware Attribution & The 1024 px Pi 4 Feasibility Gate
+> 1. **No Cross-Machine Claims:** The 67.54 ms measurement was conducted on a 16-core workstation CPU. It must NOT be directly compared against laptop measurements on different CPU architectures.
+> 2. **Compute Complexity at 1024 px:** An input resolution of $1024 \times 1024$ requires **$\sim 2.56\times$ the FLOPs** of a standard $640 \times 640$ input. 
+> 3. **The Pi 4 Challenge:** An ARM Cortex-A72 CPU is substantially slower than workstation or host laptop CPUs. Running a 1024 px model on a physical Raspberry Pi 4 will place severe pressure on the PRD target of **$\le 1000\text{ ms}$**.
+> 4. **Trade-Off Evaluation Protocol:** To construct a fair Pareto trade-off curve without retraining, `best.pt` is being evaluated at **640 px and 800 px** using `src/eval.py` to establish the exact accuracy retention vs compute reduction profile.
+> 5. **Open Gate:** Physical execution on the Raspberry Pi 4 remains the primary pending gate before final sign-off.
 
 ---
 
 ## 7. Comparative Evolution: Phase 1 vs. SPARK-2021
 
-| Attribute | Phase 1 Baseline (Old SPARK) | SPARK-2021 Current Result | Impact / Significance |
+| Dimension | Phase 1 Baseline (Old SPARK) | SPARK-2021 Current Result | Technical Reality |
 |---|---|---|---|
-| **Annotated Debris Instances** | **0** (0.00%) | **25,000** (16.67%) | **Restored primary mission scope: space debris detection is real** |
-| **Number of Classes** | 10 Classes (Satellites only) | 11 Classes (10 Satellites + Debris) | Multi-target recognition across active and defunct assets |
-| **Total Dataset Size** | 80,000 images | 150,000 images | Nearly double the training and evaluation corpus |
-| **Evaluation Splits** | Train (60k) / Val (20k) | Train (90k) / Val (30k) / Test (30k) | Dedicated frozen held-out test split eliminates selection bias |
-| **mAP@50-95 (Headline)** | 94.13% (Spacecraft only) | **86.98%** (All 11 Classes) | Grounded on true 11-class multi-target problem |
-| **Debris mAP@50-95** | *N/A (0 debris)* | **85.39%** | First verified quantitative debris score in project history |
-| **Edge CPU Latency (4T, 1024px)**| 85.94 ms | **67.54 ms** | **faster inference throughput** (14.8 FPS vs 11.6 FPS) |
+| **Annotated Debris Instances** | **0** (0.00%) | **25,000** (16.67%) | Restores synthetic space debris detection scope |
+| **Number of Classes** | 10 Classes (Satellites only) | 11 Classes (10 Satellites + Synthetic Debris) | Multi-target recognition across active and defunct assets |
+| **Total Dataset Size** | 80,000 images | 150,000 images | 1.875x expansion in ground truth corpus |
+| **Evaluation Splits** | Train (60k) / Val (20k) | Train (90k) / Val (30k) / Test (30k) | Dedicated frozen held-out test split |
+| **mAP@50-95 (Headline)** | 94.13% (Spacecraft only) | **86.98%** (All 11 Classes) | Grounded on 11-class multi-target problem |
+| **Synthetic Debris mAP@50-95**| *N/A (0 debris)* | **85.39%** | First verified quantitative debris score in project history |
 | **Model Formats Available** | `.pt` | `.pt`, `.onnx`, `.ncnn` | Complete edge deployment triad |
+

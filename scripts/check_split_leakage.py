@@ -1,0 +1,167 @@
+"""
+scripts/check_split_leakage.py
+---
+Audit for near-duplicate frame leakage between train and test splits.
+Uses 64-bit difference hashing (dHash) via standard PIL (zero external dependencies).
+A Hamming distance <= 3 indicates near-duplicate orbital frames (sequence leakage).
+"""
+
+import argparse
+import datetime
+import json
+import os
+import random
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+from PIL import Image
+
+
+def compute_dhash(img_path: Path, hash_size: int = 8) -> int:
+    """
+    Computes 64-bit difference hash (dHash) for an image.
+    Robust to minor lighting shifts and compression artifacts.
+    """
+    with Image.open(img_path) as im:
+        # Resize to (width + 1, height) and convert to grayscale
+        resized = im.convert("L").resize((hash_size + 1, hash_size), Image.Resampling.LANCZOS)
+        pixels = list(resized.getdata())
+
+    diff = []
+    for row in range(hash_size):
+        for col in range(hash_size):
+            pixel_left = pixels[row * (hash_size + 1) + col]
+            pixel_right = pixels[row * (hash_size + 1) + col + 1]
+            diff.append(pixel_left > pixel_right)
+
+    # Convert boolean array to 64-bit integer
+    decimal_val = 0
+    for idx, bit in enumerate(diff):
+        if bit:
+            decimal_val |= 1 << idx
+    return decimal_val
+
+
+def hamming_distance(h1: int, h2: int) -> int:
+    """Calculate the Hamming distance between two 64-bit integers."""
+    return bin(h1 ^ h2).count("1")
+
+
+def audit_splits(
+    dataset_dir: Path,
+    samples_per_class: int = 50,
+    threshold: int = 3,
+    seed: int = 42
+) -> Dict[str, Any]:
+    random.seed(seed)
+    train_dir = dataset_dir / "images" / "train"
+    test_dir = dataset_dir / "images" / "test"
+
+    if not train_dir.exists() or not test_dir.exists():
+        raise FileNotFoundError(
+            f"Images directories not found under {dataset_dir}. Expected images/train and images/test."
+        )
+
+    image_exts = {".jpg", ".jpeg", ".png", ".bmp"}
+    train_images = [p for p in train_dir.iterdir() if p.suffix.lower() in image_exts]
+    test_images = [p for p in test_dir.iterdir() if p.suffix.lower() in image_exts]
+
+    print("\n" + "=" * 70)
+    print("  SPARK-2021 TRAIN/TEST SPLIT LEAKAGE & DUPLICATE AUDIT")
+    print(f"  Dataset Directory: {dataset_dir}")
+    print(f"  Total Train Images: {len(train_images):,}")
+    print(f"  Total Test Images:  {len(test_images):,}")
+    print(f"  Test Sample Size:   {min(len(test_images), samples_per_class * 11):,}")
+    print(f"  Hamming Threshold:  <= {threshold} bits (out of 64)")
+    print("=" * 70 + "\n")
+
+    # Group train images by class prefix (or hash all if flat)
+    print("Computing hashes for train images...")
+    train_hashes: List[Tuple[str, int]] = []
+    # Build dictionary or sample for efficiency
+    for p in train_images:
+        try:
+            h = compute_dhash(p)
+            train_hashes.append((p.name, h))
+        except Exception:
+            continue
+
+    print(f"[OK] Computed hashes for {len(train_hashes):,} train images.")
+
+    # Sample test images
+    sample_size = min(len(test_images), samples_per_class * 11)
+    sampled_test = random.sample(test_images, sample_size)
+    print(f"Auditing {len(sampled_test)} sampled test images against train pool...")
+
+    near_duplicates = []
+    min_distances = []
+
+    for idx, test_p in enumerate(sampled_test, 1):
+        try:
+            th = compute_dhash(test_p)
+        except Exception:
+            continue
+
+        best_dist = 64
+        best_match = None
+
+        for train_name, trh in train_hashes:
+            dist = hamming_distance(th, trh)
+            if dist < best_dist:
+                best_dist = dist
+                best_match = train_name
+                if best_dist == 0:
+                    break
+
+        min_distances.append(best_dist)
+        if best_dist <= threshold:
+            near_duplicates.append({
+                "test_image": test_p.name,
+                "train_match": best_match,
+                "hamming_distance": best_dist,
+            })
+
+        if idx % 100 == 0 or idx == len(sampled_test):
+            print(f"  [{idx}/{len(sampled_test)}] Processed... (Found {len(near_duplicates)} near-duplicates so far)")
+
+    leakage_rate = (len(near_duplicates) / len(sampled_test)) * 100.0 if sampled_test else 0.0
+    avg_min_distance = sum(min_distances) / len(min_distances) if min_distances else 0.0
+
+    print("\n" + "=" * 70)
+    print(f"  LEAKAGE AUDIT RESULTS:")
+    print(f"  Audited Samples:        {len(sampled_test)}")
+    print(f"  Near-Duplicates Found:  {len(near_duplicates)}")
+    print(f"  Estimated Leakage Rate: {leakage_rate:.2f}%")
+    print(f"  Mean Min Hamming Dist:  {avg_min_distance:.2f} bits")
+    print("=" * 70 + "\n")
+
+    results = {
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "dataset_dir": str(dataset_dir),
+        "total_train_images": len(train_images),
+        "total_test_images": len(test_images),
+        "audited_samples": len(sampled_test),
+        "hamming_threshold": threshold,
+        "near_duplicates_count": len(near_duplicates),
+        "leakage_rate_pct": round(leakage_rate, 2),
+        "avg_min_distance": round(avg_min_distance, 2),
+        "near_duplicate_samples": near_duplicates[:20],
+    }
+
+    out_dir = Path("outputs") / "audits"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / "split_leakage_audit.json"
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"[OK] Saved audit results to {out_file.resolve()}\n")
+    return results
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Audit dataset for train/test split leakage.")
+    parser.add_argument("--data-dir", type=str, default="data/processed/spark2021", help="Path to processed dataset directory")
+    parser.add_argument("--samples-per-class", type=int, default=50, help="Test images sampled per class (default: 50)")
+    parser.add_argument("--threshold", type=int, default=3, help="Max Hamming distance to flag near-duplicate (default: 3)")
+    args = parser.parse_args()
+
+    audit_splits(Path(args.data_dir), args.samples_per_class, args.threshold)

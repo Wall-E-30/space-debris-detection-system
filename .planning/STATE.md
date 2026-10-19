@@ -60,10 +60,11 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [Init]: DEC-01 — NCNN primary hypothesis, ONNX Runtime fallback; lock after Pi benchmark
-- [Init]: DEC-06 — 1024px deployment & training image size; 416px comparison variant
-- [Init]: DEC-07 — TLE module is an independent catalog layer; no claim of detection-to-NORAD resolution
-- [Init]: DEC-08 — NVIDIA GV100 is primary training machine; departmental GPU is bonus
-- [Init]: DEC-10 — Model freeze deadline Sun 25 Oct
+- [Phase 1]: DEC-04 — Initial SPARK audit (10 spacecraft, 0 debris); historical Branch B baseline
+- [Phase 1]: DEC-05 — TLE module is an independent catalog layer; debris uncataloged (no NORAD ID resolution)
+- [Phase 2]: DEC-06 — Local RTX 2050 for prototyping; Departmental Quadro GV100 for production deep training
+- [Phase 2]: DEC-07 — 1024px primary training resolution on GV100; multi-scale 640px/800px trade-off evaluated
+- [Phase 2]: DEC-10 — Transition to SPARK-2021 11-Class Dataset with 25,000 synthetic debris annotations
 
 ### Pending Todos
 
@@ -71,9 +72,9 @@ None yet.
 
 ### Blockers/Concerns & Resolutions
 
-- [Phase 1]: F1 Resolved — SPARK-2021 audit confirmed 25,000 debris annotations (16.67%) across 11 classes. Superseded zero-debris limitation of initial release via DEC-07.
+- [Phase 1]: F1 Resolved — SPARK-2021 audit confirmed 25,000 synthetic debris annotations (16.67%) across 11 classes. Superseded zero-debris limitation via DEC-10.
 - [Phase 1]: F2 Resolved — `src/eval.py` implemented, standardized metrics exported, SwissCube & SPARK-2021 reproduced.
-- [Phase 2]: Physical hardware benchmark on Raspberry Pi 4 is tracked as next action item.
+- [Phase 2]: Physical hardware benchmark on Raspberry Pi 4 is tracked as the primary open gate.
 
 ## Deferred Items
 
