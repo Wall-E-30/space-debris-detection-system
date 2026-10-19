@@ -10,7 +10,7 @@ Requirements for the 4-week delivery window (12 Oct – 8 Nov 2026). Each requir
 ### Data & Preprocessing (DATA)
 
 - [ ] **DATA-01**: Complete Day-1 audit of full SPARK CSV label rows for debris class; confirm 2-class vs 10-class taxonomy in `docs/decisions.md` (FR-D3, F1).
-- [ ] **DATA-02**: Build balanced SPARK Subset B (~24k train, 3k val, plus held-out test split) resized to 640px with sequence/near-duplicate checks (FR-D1, DEC-06).
+- [ ] **DATA-02**: Build balanced SPARK Subset B (~24k train, 3k val, plus held-out test split) resized to 1024ox with sequence/near-duplicate checks (FR-D1, DEC-06).
 - [ ] **DATA-03**: Verify photometric augmentation pipeline (`src/data/augment.py`) applies strictly to training data, logging parameters per run (FR-D2, DEC-03).
 - [ ] **DATA-04**: Curate small qualitative real-world space imagery set (~20–30 public / SPEED+ images) with licenses documented for Week 4 validation (FR-D4).
 
@@ -23,7 +23,7 @@ Requirements for the 4-week delivery window (12 Oct – 8 Nov 2026). Each requir
 
 ### Model Training & Architecture (MODL)
 
-- [ ] **MODL-01**: Train baseline YOLOv8-Nano on SPARK Subset B at 640px (`degrees=0, flipud=0`) on local RTX 2050 GPU with overnight checkpointing (FR-M1, F4, F7).
+- [ ] **MODL-01**: Train baseline YOLOv8-Nano on SPARK Subset B at 1024ox (`degrees=0, flipud=0`) on local RTX 2050 GPU with overnight checkpointing (FR-M1, F4, F7).
 - [ ] **MODL-02**: Train comparison variant at 416px on the same subset and test split to evaluate latency vs accuracy scaling (FR-M2, DEC-06).
 - [ ] **MODL-03**: Execute official model freeze by Sun 25 Oct (Git tag `model-freeze`, weights archived on shared storage with SHA256 hashes, `metrics.json` recorded) (FR-M5, DEC-10).
 
@@ -61,52 +61,54 @@ Requirements for the 4-week delivery window (12 Oct – 8 Nov 2026). Each requir
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
+| Feature                                      | Reason                                                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Direct image-to-orbit conjunction claims** | 2D bounding boxes do not measure 3D range, state vectors, or velocity; SGP4 is kept strictly as an independent catalog awareness layer (DEC-07). |
-| **Optical flow & multi-frame tracking** | Out of scope for 4-week detect→quantize→benchmark critical path. |
-| **Frame-based collision-risk heuristics** | Omitted to focus on core detector optimization and physical edge deployment. |
-| **Physical FPGA hardware build** | Toolchains and RTL design exceed 4-week window; short analytical feasibility note only (FR-E6). |
-| **Training on real SSN radar/optical data** | Restricted access; synthetic training with qualitative real validation only. |
-| **Heavy model backbones (YOLOv8x, DETR)** | Prohibitive training time on 4GB GPU and exceeds edge power/memory budgets. |
+| **Optical flow & multi-frame tracking**      | Out of scope for 4-week detect→quantize→benchmark critical path.                                                                                 |
+| **Frame-based collision-risk heuristics**    | Omitted to focus on core detector optimization and physical edge deployment.                                                                     |
+| **Physical FPGA hardware build**             | Toolchains and RTL design exceed 4-week window; short analytical feasibility note only (FR-E6).                                                  |
+| **Training on real SSN radar/optical data**  | Restricted access; synthetic training with qualitative real validation only.                                                                     |
+| **Heavy model backbones (YOLOv8x, DETR)**    | Prohibitive training time on 4GB GPU and exceeds edge power/memory budgets.                                                                      |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
-| DATA-04 | Phase 8 | Pending |
-| EVAL-01 | Phase 1 | Pending |
-| EVAL-02 | Phase 1 | Pending |
-| EVAL-03 | Phase 5 | Pending |
-| EVAL-04 | Phase 7 | Pending |
-| MODL-01 | Phase 4 | Pending |
-| MODL-02 | Phase 4 | Pending |
-| MODL-03 | Phase 5 | Pending |
-| EDGE-01 | Phase 1 | Pending |
-| EDGE-02 | Phase 3 | Pending |
-| EDGE-03 | Phase 3 | Pending |
-| EDGE-04 | Phase 6 | Pending |
-| EDGE-05 | Phase 6 | Pending |
-| EDGE-06 | Phase 7 | Pending |
-| EDGE-07 | Phase 7 | Pending |
-| PROD-01 | Phase 8 | Pending |
-| PROD-02 | Phase 8 | Pending |
-| PROD-03 | Phase 8 | Pending |
-| PROD-04 | Phase 9 | Pending |
-| DELV-01 | Phase 1 | Pending |
-| DELV-02 | Phase 9 | Pending |
-| DELV-03 | Phase 9 | Pending |
-| DELV-04 | Phase 9 | Pending |
-| DELV-05 | Phase 9 | Pending |
+| Requirement | Phase   | Status  |
+| ----------- | ------- | ------- |
+| DATA-01     | Phase 1 | Pending |
+| DATA-02     | Phase 2 | Pending |
+| DATA-03     | Phase 2 | Pending |
+| DATA-04     | Phase 8 | Pending |
+| EVAL-01     | Phase 1 | Pending |
+| EVAL-02     | Phase 1 | Pending |
+| EVAL-03     | Phase 5 | Pending |
+| EVAL-04     | Phase 7 | Pending |
+| MODL-01     | Phase 4 | Pending |
+| MODL-02     | Phase 4 | Pending |
+| MODL-03     | Phase 5 | Pending |
+| EDGE-01     | Phase 1 | Pending |
+| EDGE-02     | Phase 3 | Pending |
+| EDGE-03     | Phase 3 | Pending |
+| EDGE-04     | Phase 6 | Pending |
+| EDGE-05     | Phase 6 | Pending |
+| EDGE-06     | Phase 7 | Pending |
+| EDGE-07     | Phase 7 | Pending |
+| PROD-01     | Phase 8 | Pending |
+| PROD-02     | Phase 8 | Pending |
+| PROD-03     | Phase 8 | Pending |
+| PROD-04     | Phase 9 | Pending |
+| DELV-01     | Phase 1 | Pending |
+| DELV-02     | Phase 9 | Pending |
+| DELV-03     | Phase 9 | Pending |
+| DELV-04     | Phase 9 | Pending |
+| DELV-05     | Phase 9 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 26 total
 - Mapped to phases: 26
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-10-12*  
-*Last updated: 2026-10-12 after initial definition*
+
+_Requirements defined: 2026-10-12_  
+_Last updated: 2026-10-12 after initial definition_

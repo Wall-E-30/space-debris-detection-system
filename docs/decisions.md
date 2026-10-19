@@ -8,16 +8,17 @@ This document records major technical, architectural, and deployment decisions f
 
 **TFLite** and **ONNX Runtime** are both inference runtimes — you export your trained YOLOv8n weights into their format and run them locally. **Edge Impulse** is a full MLOps platform (train + optimize + deploy) built primarily around its own EON compiler for microcontroller-class TinyML models (FOMO, small CNNs) rather than full YOLO detection heads.
 
-| | TFLite | ONNX Runtime | Edge Impulse |
-|---|---|---|---|
-| **What it is** | Google's mobile/embedded inference runtime | Cross-platform inference runtime | End-to-end MLOps platform (train + deploy) |
-| **YOLOv8 export support** | Native `.tflite` export via Ultralytics | Native `.onnx` export via Ultralytics | Requires "Bring Your Own Model" workaround |
-| **RPi 4 CPU speed** | Finicky without manual multi-threading/XNNPACK configuration | Comparable or better than baseline TFLite on ARM CPU | Not designed for full YOLO detector backbones |
-| **Ultralytics Benchmark** | Included in standard export list | Included as standard portable format | Not part of Ultralytics' benchmarked export list |
-| **Ecosystem fit** | Good — well-documented, offline | Good — cross-platform interchange format | Poor fit for YOLOv8n detection on RPi4 |
-| **License** | Apache 2.0 | MIT | Free tier + paid tiers |
+|                           | TFLite                                                       | ONNX Runtime                                         | Edge Impulse                                     |
+| ------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------ |
+| **What it is**            | Google's mobile/embedded inference runtime                   | Cross-platform inference runtime                     | End-to-end MLOps platform (train + deploy)       |
+| **YOLOv8 export support** | Native `.tflite` export via Ultralytics                      | Native `.onnx` export via Ultralytics                | Requires "Bring Your Own Model" workaround       |
+| **RPi 4 CPU speed**       | Finicky without manual multi-threading/XNNPACK configuration | Comparable or better than baseline TFLite on ARM CPU | Not designed for full YOLO detector backbones    |
+| **Ultralytics Benchmark** | Included in standard export list                             | Included as standard portable format                 | Not part of Ultralytics' benchmarked export list |
+| **Ecosystem fit**         | Good — well-documented, offline                              | Good — cross-platform interchange format             | Poor fit for YOLOv8n detection on RPi4           |
+| **License**               | Apache 2.0                                                   | MIT                                                  | Free tier + paid tiers                           |
 
 ### Recommendation
+
 **Export to NCNN as primary, keep ONNX as portable fallback, drop Edge Impulse for this deployment.**
 
 - **NCNN:** Primary deployment runtime for Raspberry Pi 4 demo (`model.export(format="ncnn")`). Achieves up to ~5x speedup over standard ONNX on ARM CPU.
@@ -29,6 +30,7 @@ This document records major technical, architectural, and deployment decisions f
 ## 2. Baseline Model Architecture & Training Optimization
 
 ### Decisions
+
 1. **Model Selection:** `YOLOv8n` (Nano) selected as baseline due to lightweight parameter footprint (~3.0M parameters, 8.2 GFLOPs) ideal for real-time edge execution.
 2. **GPU Acceleration & Dataloader Optimization:**
    - Default CPU training (~34 hrs/5 epochs) migrated to **NVIDIA RTX 2050 GPU (CUDA)**.
@@ -53,7 +55,7 @@ This document records major technical, architectural, and deployment decisions f
 
 ## 4. Object Taxonomy & Dataset Strategy
 
-*(Detailed taxonomy analysis and Superclass mapping log available in [`data/decisions.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/decisions.md))*
+_(Detailed taxonomy analysis and Superclass mapping log available in [`data/decisions.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/decisions.md))_
 
 - **Target Classes:** `satellite`, `debris`, `rocket_body`.
 - **v1 Taxonomy Strategy:** Collapsed multi-spacecraft classes into `satellite` superclass; `debris` mapped 1:1. Deferred `rocket_body` synthesis to v2/stretch goals.
@@ -64,9 +66,11 @@ This document records major technical, architectural, and deployment decisions f
 ## 5. Photometric Augmentation Pipeline (Domain Gap Mitigation)
 
 ### Context & Design
+
 Synthetic satellite imagery (SPARK, SwissCube) exhibits clean rendering artifacts (uniform lighting, zero sensor noise, perfect optical focus) that do not reflect real-world space domain telescope or star tracker conditions.
 
 ### Decisions
+
 1. **Photometric-Only Transforms:** Implemented `src/data/augment.py` using composable photometric adjustments (brightness/contrast jitter, Gaussian blur, sensor read noise). Because pixel positions are unchanged, bounding box annotations remain 100% invariant and require no coordinate recalculations.
 2. **Strict Split Isolation:** Augmentations are applied exclusively to training splits (`train/`); validation and test sets remain unaltered to guarantee uncorrupted metric evaluation.
 3. **Cross-Team Handoff:** Verified pipeline and handed off to Person A with parameterized CLI and programmatic `SpaceImageAugmenter` class.
@@ -76,6 +80,7 @@ Synthetic satellite imagery (SPARK, SwissCube) exhibits clean rendering artifact
 ## 6. Stage 3 Orbit Propagation & Conjunction Distance Estimation
 
 ### Architecture & Mechanics
+
 Integrated a real-time orbit propagation pipeline (`src/data/tle_pipeline.py`) downstream of YOLO object detection to calculate relative Euclidean distances between space objects in 3D space.
 
 ```
@@ -97,6 +102,7 @@ Integrated a real-time orbit propagation pipeline (`src/data/tle_pipeline.py`) d
 ```
 
 ### Decisions
+
 1. **Live Ephemeris Fetching:** Skyfield fetches live General Perturbations (GP) Two-Line Element Sets (TLEs) directly from CelesTrak (`GROUP=active&FORMAT=tle`), indexing into an in-memory NORAD catalog.
 2. **NORAD ID Mapping & Historical Proxies:** Created a lookup table mapping detected classes (e.g., `Cheops`, `LisaPathfinder`, `Proba2`, `ObservationSat1`) to catalog IDs, utilizing active LEO proxies for deep space / historical assets to ensure valid SGP4 orbit propagation.
 3. **Relative Distance Calculation:** Resolved geocentric position vectors $(X, Y, Z)$ in kilometers at UTC timestamps and calculated Euclidean separation:
@@ -107,6 +113,7 @@ Integrated a real-time orbit propagation pipeline (`src/data/tle_pipeline.py`) d
 ## 7. Edge Export Pipeline & Optimization
 
 ### Implementation
+
 Developed `edge/export.py` to automate conversion of trained PyTorch weights (`best.pt`) into optimized edge formats:
 
 1. **ONNX Export (`best.onnx`):**
@@ -123,17 +130,19 @@ Developed `edge/export.py` to automate conversion of trained PyTorch weights (`b
 ## 8. Empirical Edge Benchmarking & Latency Analysis
 
 ### Benchmark Methodology (`edge/benchmark.py`)
+
 Inference throughput and latency were empirically evaluated on local CPU (640x640 resolution, 5 warmup passes, 30-50 iterations) evaluating thread scaling (`threads=1`, `threads=4`) and process memory footprint via `psutil`.
 
 ### Empirical Results Summary
 
-| Engine | Thread Config | Mean Latency | p95 Latency | Throughput (FPS) | Memory Footprint (RAM) |
-|---|---|---|---|---|---|
-| **ONNX Runtime** | `threads=1` | 223.20 ms | 385.64 ms | 4.5 FPS | ~0.0 MB RSS |
-| **ONNX Runtime** | `threads=4` | 209.71 ms | 226.12 ms | 4.8 FPS | ~0.0 MB RSS |
-| **NCNN** | `threads=4` | **165.21 ms** | **178.48 ms** | **6.1 FPS** | **~10.9 MB RSS** |
+| Engine           | Thread Config | Mean Latency  | p95 Latency   | Throughput (FPS) | Memory Footprint (RAM) |
+| ---------------- | ------------- | ------------- | ------------- | ---------------- | ---------------------- |
+| **ONNX Runtime** | `threads=1`   | 223.20 ms     | 385.64 ms     | 4.5 FPS          | ~0.0 MB RSS            |
+| **ONNX Runtime** | `threads=4`   | 209.71 ms     | 226.12 ms     | 4.8 FPS          | ~0.0 MB RSS            |
+| **NCNN**         | `threads=4`   | **165.21 ms** | **178.48 ms** | **6.1 FPS**      | **~10.9 MB RSS**       |
 
 ### Key Takeaways & Validation
+
 - **NCNN Performance Lead:** NCNN with 4 threads achieved a **~21% latency reduction** (165.21 ms vs 209.71 ms) and **~27% higher FPS** (6.1 vs 4.8) compared to 4-thread ONNX Runtime.
 - **Latency Stability:** NCNN delivered substantially tighter p95 variance (178.48 ms vs 226.12 ms in ONNX multi-thread and 385.64 ms in ONNX single-thread).
 - **Architecture Validation:** Empirically confirms the Section 1 recommendation to establish NCNN as the primary edge deployment runtime for ARM CPU SBCs (RPi 4).
@@ -148,15 +157,17 @@ Inference throughput and latency were empirically evaluated on local CPU (640x64
 **Evidence Artifact:** `docs/spark_class_audit.json`
 
 ### Empirical Audit Findings
+
 On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete row-by-row audit across all annotation rows in the raw SPARK dataset (`data/raw/spark/train.csv` and `data/raw/spark/val.csv`).
 
-| Split | Total Image Files | Total Label Rows | Detected Classes | Debris Rows |
-| :--- | :--- | :--- | :--- | :--- |
-| **Train (`train.csv`)** | 60,000 | 60,000 | 10 classes (6,000 per class) | **0** |
-| **Val (`val.csv`)** | 20,000 | 20,000 | 10 classes (2,000 per class) | **0** |
-| **Total** | 80,000 | 80,000 | 10 classes (8,000 per class) | **0** |
+| Split                   | Total Image Files | Total Label Rows | Detected Classes             | Debris Rows |
+| :---------------------- | :---------------- | :--------------- | :--------------------------- | :---------- |
+| **Train (`train.csv`)** | 60,000            | 60,000           | 10 classes (6,000 per class) | **0**       |
+| **Val (`val.csv`)**     | 20,000            | 20,000           | 10 classes (2,000 per class) | **0**       |
+| **Total**               | 80,000            | 80,000           | 10 classes (8,000 per class) | **0**       |
 
 **Detected Class Frequencies (Exactly 8,000 rows each across train+val):**
+
 1. `Cheops` (8,000)
 2. `LisaPathfinder` (8,000)
 3. `ObservationSat1` (8,000)
@@ -169,18 +180,51 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 10. `XMM Newton` (8,000)
 
 ### Decision & Project Alignment (Adoption of Branch B)
+
 1. **Finding F1 Confirmed:** The raw SPARK dataset contains **zero annotated debris fragments**. It is strictly a 10-class spacecraft dataset featuring 10 operational satellites and deep-space probes under varied space lighting conditions.
 2. **Adoption of Branch B:**
-   - **Primary Quantitative Model (Phases 2–7):** Formally defined as **10-class spacecraft detection and classification** (`yolov8n` trained on balanced Subset B at 640px). All quantitative evaluation metrics (mAP@0.5, mAP@0.5:0.95, per-class P/R, edge latency on Raspberry Pi 4) are grounded on this real 10-class dataset.
+   - **Primary Quantitative Model (Phases 2–7):** Formally defined as **10-class spacecraft detection and classification** (`yolov8n` trained on balanced Subset B at 1024ox). All quantitative evaluation metrics (mAP@0.5, mAP@0.5:0.95, per-class P/R, edge latency on Raspberry Pi 4) are grounded on this real 10-class dataset.
    - **Debris Coverage (Phase 8–9):** True space debris (small fragments, mission-related debris, rocket bodies) will be demonstrated **qualitatively** using real-world public orbital imagery (SPEED+ / PRISMA rendezvous imagery).
    - **Transparency & Integrity:** The project report and evaluation presentations will document this empirical finding openly, highlighting that real-world edge deployment requires multi-target tracking across active payloads and defunct assets.
 
 ---
 
+## DEC-07: Transition to SPARK-2021 11-Class Dataset (Ground-Truth Debris Integration)
+
+**Date:** 2026-10-19  
+**Author:** ML & Edge Systems Team  
+**Status:** Decided & Executed (`supersedes DEC-04 Branch B`)  
+**Evidence Artifacts:**
+
+- Dataset Audit: `outputs/audits/latest_spark2021.json`
+- Training Run: `experiments/spark2021_yolov8n_50e`
+- Evaluation Reports: `outputs/evaluations/spark2021_val_metrics.json`, `outputs/evaluations/spark2021_test_metrics.json`
+- Edge Benchmark: `outputs/benchmarks/spark2021_onnx_benchmark.json`
+
+### Empirical Findings
+
+1. **Resolution of Debris Deficiency:** While the initial release of SPARK evaluated in Phase 1 contained zero debris annotations (DEC-04), the complete **SPARK-2021 dataset** contains **25,000 confirmed debris annotations** across 5 geometric debris types alongside 125,000 satellite annotations across 10 spacecraft classes (150,000 images total).
+2. **11-Class Model Convergence:** A 50-epoch deep training run on an NVIDIA Quadro GV100 (`spark2021_yolov8n_50e`) converged cleanly to:
+   - Overall Test mAP@50: **99.02%**
+   - Overall Test mAP@50-95: **86.98%**
+   - **Debris Class (Class 6) Test Precision:** **97.75%**
+   - **Debris Class (Class 6) Test Recall:** **97.34%**
+   - **Debris Class (Class 6) Test mAP@50:** **98.34%**
+   - **Debris Class (Class 6) Test mAP@50-95:** **85.39%**
+3. **Edge Optimization:** The model was successfully compiled to ONNX FP32 (67.54 ms latency / 14.8 FPS on 4 CPU threads) and NCNN (`best_ncnn_model/`), providing dual runtime deployment readiness for the Raspberry Pi 4.
+
+### Architectural Decision:
+
+- **Supersession of Branch B:** The project returns to its primary original objective: quantitative detection and edge tracking of both **operational spacecraft AND genuine space debris**.
+- **Dataset Contract:** `configs/spark2021.yaml` (11 classes) is established as the primary dataset contract moving forward.
+
+---
+
 ## Related References
+
+- [SPARK-2021 Comprehensive Report](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md)
+- [Phase 1 Verification & Results](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/PHASE_1_VERIFICATION_AND_RESULTS.md)
 - [CV Basics & Object Detection Fundamentals](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/cv_basics.md)
-- [Dataset Shortlist & Exploration Notes](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/README.md)
-- [Object Classes & Taxonomy Decisions](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/data/decisions.md)
 - [Photometric Augmentation Pipeline](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/data/augment.py)
 - [SGP4 Orbital Tracker & TLE Pipeline](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/data/tle_pipeline.py)
 - [Edge Model Exporter](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/edge/export.py)

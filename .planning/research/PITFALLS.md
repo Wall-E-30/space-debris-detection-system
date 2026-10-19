@@ -2,7 +2,7 @@
 
 **Domain:** Edge AI / Space Situational Awareness Object Detection  
 **Researched:** 2026-10-12  
-**Confidence:** HIGH  
+**Confidence:** HIGH
 
 ## Critical Pitfalls
 
@@ -53,7 +53,7 @@ Planning training around waiting for external cluster/departmental server access
 Assuming the full multi-class SPARK dataset (~150,000 images) must be trained for 50 epochs.
 
 **How to avoid:**
-Plan training around the local NVIDIA RTX 2050 (4GB VRAM) laptop GPU: create balanced Subset B (~24k train, 3k val) at 640px, which trains in ~3.2–4.3 hours (~5–6.5h with safety margin). Run overnight. Treat departmental GPU access as a bonus.
+Plan training around the local NVIDIA RTX 2050 (4GB VRAM) laptop GPU: create balanced Subset B (~24k train, 3k val) at 1024ox, which trains in ~3.2–4.3 hours (~5–6.5h with safety margin). Run overnight. Treat departmental GPU access as a bonus.
 
 **Warning signs:**
 Workstream status marked "Blocked on GPU access".
@@ -100,5 +100,6 @@ Class lists containing only named satellites (`Cheops`, `Proba-2`, etc.) without
 Phase 1 (Day-1 SPARK audit).
 
 ---
-*Pitfalls research for: Edge-Deployable Space Debris Detection System*  
-*Researched: 2026-10-12*
+
+_Pitfalls research for: Edge-Deployable Space Debris Detection System_  
+_Researched: 2026-10-12_
