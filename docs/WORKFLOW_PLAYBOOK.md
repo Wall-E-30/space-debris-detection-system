@@ -412,6 +412,7 @@ python edge/benchmark.py `
 
 #### Workstation CPU Baseline Summary (16-Core Xeon):
 - **640x640 (4 threads):** **23.70 ms mean**, 22.32 ms median, 28.70 ms p95, **42.2 FPS**, **129.34 MB RSS**.
+- **800x800 (4 threads):** **35.79 ms mean**, 34.51 ms median, 41.70 ms p95, **27.9 FPS**, **162.71 MB RSS**.
 - **1024x1024 (4 threads):** **65.20 ms mean**, 64.33 ms median, 72.80 ms p95, **15.3 FPS**, **207.36 MB RSS**.
 - **Single-Machine Compute Scaling:** Scaling from 1024px down to 640px achieves an exact **$2.75\times$ speedup** and **37.6% memory reduction**, matching theoretical FLOPs scaling $(\frac{1024}{640})^2 = 2.56\times$.
 
@@ -459,28 +460,11 @@ The following steps have already been successfully executed, converged, and save
 - ✅ **50-Epoch Deep Training:** `experiments/spark2021_yolov8n_50e/weights/best.pt` (34 hours on GV100)
 - ✅ **Multi-Scale Test Evaluations:** 640px, 800px, 1024px evaluated (`outputs/evaluations/`)
 - ✅ **Model Exports:** `best.onnx` and `best_ncnn_model/`
-- ✅ **640px & 1024px Xeon Benchmarks:** `outputs/benchmarks/`
+- ✅ **Multi-Scale Xeon CPU Benchmarks:** 640px (23.7ms), 800px (35.8ms), 1024px (65.2ms) saved in `outputs/benchmarks/`
 
 ---
 
-### Part B: The ONLY Remaining Workstation Step (Takes ~10 seconds!)
-
-To complete the 3-point Pareto curve on the 16-Core Xeon CPU, run this single benchmark command on your GV100 Workstation:
-
-```powershell
-# Benchmark 800 px ONNX on Workstation Xeon CPU (10 warmup, 100 timed runs, 4 threads)
-python edge/benchmark.py `
-  --model experiments/spark2021_yolov8n_50e/weights/best.onnx `
-  --imgsz 800 `
-  --threads 4 `
-  --runs 100 `
-  --warmup 10 `
-  --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
-```
-
----
-
-### Part C: Physical Edge Hardware Deployment (Raspberry Pi 4 / Pi 5)
+### Part B: The ONLY Open Gate — Physical Edge Hardware Deployment (Raspberry Pi 4 / Pi 5)
 
 Transfer the exported edge weights and execute the physical hardware benchmark against the PRD $\le 1000\text{ ms}$ gate:
 
