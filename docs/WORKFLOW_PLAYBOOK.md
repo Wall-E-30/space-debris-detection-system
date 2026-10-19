@@ -275,22 +275,28 @@ python scripts/check_split_leakage.py `
 
 ### STAGE 6: Full Production 50-Epoch Deep Training on Quadro GV100
 
-**Objective:** Execute the complete 50-epoch deep training run of YOLOv8-Nano on the 180,000-image SPARK-2021 dataset at native $1024 \times 1024$ resolution.
+> [!IMPORTANT]
+> ### ✅ STATUS: ALREADY COMPLETED & SAVED (DO NOT RETRAIN!)
+> This 50-epoch deep training run has **already successfully executed and converged** on the NVIDIA Quadro GV100 GPU (122,183 seconds / ~33.94 hours).
+> - **Model Checkpoint:** `experiments/spark2021_yolov8n_50e/weights/best.pt` (6.29 MB)
+> - **Headline Performance:** **86.98% mAP@50-95** (All 11 Classes), **85.39% mAP@50-95** (Debris)
+> - **DO NOT RE-RUN:** The command below is documented strictly for scientific auditability and future reproducibility.
 
-#### Workstation Training Configuration:
+#### Workstation Training Configuration (Historical Record):
 - **Architecture:** YOLOv8-Nano (`yolov8n.pt`, 3.01M parameters)
 - **Input Resolution:** $1024 \times 1024$ px
 - **Batch Size:** 16 (optimized for 32 GB VRAM on Quadro GV100)
-- **Total Training Images:** 180,000
+- **Total Training Images:** 180,000 (90k raw + 90k `aug1_*`)
 - **Batches per Epoch:** $\frac{180,000}{16} = 11,250$ batches
 - **Total Iterations:** $11,250 \times 50 = 562,500$ batches
-- **Mosaic Augmentation Closure:** Closes at epoch 40 (batch 450,000, `train_batch450000.jpg`)
+- **Mosaic Augmentation Closure:** Closed at epoch 40 (batch 450,000, `train_batch450000.jpg`)
 - **Measured Duration:** 122,183 seconds (~33.94 hours, averaging 2,443.7 seconds / ~40.7 minutes per epoch)
 - **Optimizer:** SGD (lr0=0.01, momentum=0.937, weight_decay=0.0005)
 - **Active Online Transforms:** Degrees 180.0 ($360^\circ$ rotation invariance), flipud 0.5, fliplr 0.5, HSV jitter, random erasing 0.4.
 
-#### Command Execution (GV100 Workstation):
+#### Reference Reproducibility Command (Only if retraining from scratch):
 ```powershell
+# ONLY RUN IF RETRAINING FROM SCRATCH (Takes ~34 hours on GV100)
 python src/train.py `
   --epochs 50 `
   --imgsz 1024 `
@@ -441,38 +447,51 @@ Once artifacts are generated on the GV100 workstation, package the edge deployme
 
 ---
 
-## 5. Workstation Fast Command Summary (Quick Copy-Paste)
+## 5. Workstation Fast Command Summary
+
+### Part A: Already Completed & Verified Milestones (DO NOT RE-RUN!)
+
+The following steps have already been successfully executed, converged, and saved:
+- ✅ **Extraction & Audit:** `scripts/extract_spark2021.py` & `scripts/audit_spark2021_annotations.py`
+- ✅ **YOLO Format Conversion:** `scripts/convert_spark2021_to_yolo.py`
+- ✅ **Photometric Data Augmentation:** `src/data/augment.py` (180,000 images in `images/train/`)
+- ✅ **Split Leakage Audit:** `scripts/check_split_leakage.py` (`outputs/audits/split_leakage_audit.json`)
+- ✅ **50-Epoch Deep Training:** `experiments/spark2021_yolov8n_50e/weights/best.pt` (34 hours on GV100)
+- ✅ **Multi-Scale Test Evaluations:** 640px, 800px, 1024px evaluated (`outputs/evaluations/`)
+- ✅ **Model Exports:** `best.onnx` and `best_ncnn_model/`
+- ✅ **640px & 1024px Xeon Benchmarks:** `outputs/benchmarks/`
+
+---
+
+### Part B: The ONLY Remaining Workstation Step (Takes ~10 seconds!)
+
+To complete the 3-point Pareto curve on the 16-Core Xeon CPU, run this single benchmark command on your GV100 Workstation:
 
 ```powershell
-# 1. EXTRACT ARCHIVES
-python scripts/extract_spark2021.py --spark-dir data/raw/SPARK-2021 --split all
-
-# 2. AUDIT LABELS
-python scripts/audit_spark2021_annotations.py --spark-dir data/raw/SPARK-2021 --out docs/spark2021_class_audit.json
-
-# 3. CONVERT TO YOLO
-python scripts/convert_spark2021_to_yolo.py --spark-dir data/raw/SPARK-2021 --out data/processed/spark2021 --link-mode hardlink
-
-# 4. AUGMENT TRAINING SET (TRAIN-ONLY ISOLATION)
-python src/data/augment.py --data data/processed/spark2021 --copies 1 --seed 42
-
-# 5. AUDIT SPLIT LEAKAGE
-python scripts/check_split_leakage.py --train-dir data/processed/spark2021/images/train --test-dir data/processed/spark2021/images/test --train-samples 5000 --test-samples 550 --out outputs/audits/split_leakage_audit.json
-
-# 6. TRAIN 50 EPOCHS ON GV100
-python src/train.py --epochs 50 --imgsz 1024 --batch 16 --data-config configs/spark2021.yaml --name spark2021_yolov8n_50e --save-period 5 --device 0
-
-# 7. MULTI-SCALE EVALUATE ON TEST SET
-python src/eval.py --weights experiments/spark2021_yolov8n_50e/weights/best.pt --data configs/spark2021.yaml --split test --imgsz 1024 --device 0 --out outputs/evaluations/spark2021_test_1024.json
-python src/eval.py --weights experiments/spark2021_yolov8n_50e/weights/best.pt --data configs/spark2021.yaml --split test --imgsz 800 --device 0 --out outputs/evaluations/spark2021_test_800.json
-python src/eval.py --weights experiments/spark2021_yolov8n_50e/weights/best.pt --data configs/spark2021.yaml --split test --imgsz 640 --device 0 --out outputs/evaluations/spark2021_test_640.json
-
-# 8. EXPORT EDGE WEIGHTS
-yolo export model=experiments/spark2021_yolov8n_50e/weights/best.pt format=onnx imgsz=1024 simplify=True
-yolo export model=experiments/spark2021_yolov8n_50e/weights/best.pt format=ncnn imgsz=1024
-
-# 9. BENCHMARK ON WORKSTATION XEON CPU
-python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 640 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_640_benchmark.json
-python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 800 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
-python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 1024 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_1024_benchmark.json
+# Benchmark 800 px ONNX on Workstation Xeon CPU (10 warmup, 100 timed runs, 4 threads)
+python edge/benchmark.py `
+  --model experiments/spark2021_yolov8n_50e/weights/best.onnx `
+  --imgsz 800 `
+  --threads 4 `
+  --runs 100 `
+  --warmup 10 `
+  --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
 ```
+
+---
+
+### Part C: Physical Edge Hardware Deployment (Raspberry Pi 4 / Pi 5)
+
+Transfer the exported edge weights and execute the physical hardware benchmark against the PRD $\le 1000\text{ ms}$ gate:
+
+```bash
+# On Raspberry Pi terminal (640px Pareto optimal operating point)
+python edge/benchmark.py \
+  --model experiments/spark2021_yolov8n_50e/weights/best.onnx \
+  --imgsz 640 \
+  --threads 4 \
+  --runs 100 \
+  --warmup 10 \
+  --out outputs/benchmarks/pi_onnx_640_benchmark.json
+```
+
