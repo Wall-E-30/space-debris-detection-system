@@ -32,9 +32,9 @@ All Phase 1 requirements were validated through conversational User Acceptance T
 | # | UAT Test Name | Expected Behavior | Verification Evidence & Outcome | Status |
 |---|---|---|---|:---:|
 | **1** | **Standalone Evaluation Harness** (`src/eval.py`) | Runs independently of training; evaluates model checkpoints (`best.pt`) on validation/test splits with safe device handling (CPU/GPU); outputs standardized JSON metrics to `outputs/evaluations/`. | Verified with SwissCube and SPARK models. Produces `map50`, `map50_95`, `precision`, `recall`, params, FLOPs, and file size. | **PASS** |
-| **2** | **SPARK Dataset Label Audit** (`scripts/audit_spark_annotations.py`) | Audits all 80,000 annotation rows across `train.csv` and `val.csv`; checks for debris keywords; archives results to `docs/spark_class_audit.json`. | Verified 80,000 rows across 10 spacecraft classes (8,000 instances each). Found **0 debris rows**, definitively locking DEC-04 Branch B. | **PASS** |
+| **2** | **SPARK Dataset Label Audit** (`scripts/audit_spark_annotations.py`) | Audits all 80,000 annotation rows across `train.csv` and `val.csv`; checks for debris keywords; archives results to `docs/spark_class_audit.json`. | Verified 80,000 rows across 10 spacecraft classes (8,000 instances each). Found **0 debris rows in the initial 80k subset**, establishing interim Decision DEC-04 Branch B (later superseded by DEC-10 upon acquiring SPARK-2021). | **PASS** |
 | **3** | **Edge Testbed Verification** (`edge/verify_pi_env.py`) | Checks Python version ($\ge 3.10$), architecture (`aarch64` / system host), memory, CPU core count, and ONNX Runtime imports; archives health check to `outputs/env_checks/latest.json`. | Verified environment sanity checker runs without crashing and outputs JSON status with clear PASS/FAIL flags. | **PASS** |
-| **4** | **Edge Benchmark Harness** (`edge/benchmark.py`) | Discards $\ge 10$ warmup runs; measures $\ge 100$ timed runs; pins thread counts; tracks whole-process peak Resident Set Size (RSS) memory via `psutil`; writes metrics to `outputs/benchmarks/`. | Verified on Laptop CPU Proxy (i5-11400H). Measured 85.94 ms (4 threads, 1024 px) and 46.44 ms (4 threads, 640 px). Physical Pi 4 deployment tracked as pending. | **PASS** |
+| **4** | **Edge Benchmark Harness** (`edge/benchmark.py`) | Discards $\ge 10$ warmup runs; measures $\ge 100$ timed runs; pins thread counts; tracks whole-process peak Resident Set Size (RSS) memory via `psutil`; writes metrics to `outputs/benchmarks/`. | Verified on 16-Core Xeon CPU. Measured 23.70 ms (4 threads, 640 px) and 65.20 ms (4 threads, 1024 px). Physical Pi edge deployment tracked as open gate. | **PASS** |
 | **5** | **Repository Hygiene & Config Isolation** | Isolates edge dependencies in `requirements-edge.txt`; separates configs into `configs/swisscube.yaml` and `configs/spark.yaml`; gitignores binary weights and transient scripts (`gp.php`). | Clean git status verified; configs load cleanly in CLI scripts without mutual interference. | **PASS** |
 
 ---
@@ -54,9 +54,9 @@ All Phase 1 requirements were validated through conversational User Acceptance T
 
 ### Workstream 2: Ground-Truth Dataset Audit (`scripts/audit_spark_annotations.py`)
 - Built an automated CSV audit utility supporting case-insensitive column headers and aliases.
-- Scanned all 80,000 bounding box rows in SPARK `train.csv` (60,000 rows) and `val.csv` (20,000 rows).
-- Resolved **Finding F1 / Decision D-01 & D-02**: Confirmed that generic debris does not exist in the official SPARK dataset.
-- Formally established Architecture Decision **DEC-04 (Branch B)**: The project is framed as an edge-deployable multi-spacecraft recognition system across 10 classes, with qualitative debris tracking demonstrated via SPEED+ in later phases.
+- Scanned all 80,000 bounding box rows in the SPARK subset `train.csv` (60,000 rows) and `val.csv` (20,000 rows).
+- Resolved **Finding F1 / Decision D-01 & D-02**: Confirmed that generic debris did not exist in the 80k subset we had.
+- Formally established interim Architecture Decision **DEC-04 (Branch B)**: The project was framed as an edge-deployable multi-spacecraft recognition system across 10 classes for Phase 1 baseline reproducibility (subsequently superseded by DEC-10 with SPARK-2021).
 - Results archived to `docs/spark_class_audit.json` and synchronized in `docs/decisions.md`.
 
 ### Workstream 3: Space-Domain & Photometric Augmentation Pipeline (`src/data/augment.py`)
@@ -123,29 +123,29 @@ All Phase 1 requirements were validated through conversational User Acceptance T
 | `XMM Newton` | 6,000 | 2,000 | 8,000 | No | Spacecraft |
 | **Totals** | **60,000** | **20,000** | **80,000** | **0** | **10 Spacecraft Classes (DEC-04)** |
 
-### 4.3 Benchmark Latency & Memory Profile (ONNX Runtime)
+### 4.3 Benchmark Latency & Memory Profile (ONNX Runtime, Single-Machine Workstation CPU)
 
-To avoid misleading claims, all timings are strictly attributed to their execution platform:
+To ensure scientific reproducibility, all benchmarks were executed on the **identical 16-Core Intel Xeon CPU Workstation** using `edge/benchmark.py` (10 warmup, 100 timed runs, FP32 precision):
 
-| Model & Resolution | Hardware Platform | CPU Threads | Mean Latency | Median Latency | p95 Latency | Throughput (FPS) | Peak RSS | Hardware Note |
+| Model & Resolution | Hardware Platform | CPU Threads | Mean Latency | Median Latency | p95 Latency | Throughput (FPS) | Peak RSS | Scaling Note |
 |---|---|:---:|---|---|---|:---:|---|---|
-| SwissCube (640x640) | Laptop CPU Proxy (i5-11400H) | 1 Thread | 170.92 ms | 165.23 ms | 219.49 ms | 5.9 FPS | 118.6 MB | Explains earlier "210 ms" single-thread observation |
-| SwissCube (640x640) | Laptop CPU Proxy (i5-11400H) | 4 Threads | 46.44 ms | 45.10 ms | 54.69 ms | 21.5 FPS | 121.8 MB | Laptop proxy baseline |
-| SPARK (1024x1024) | Laptop CPU Proxy (i5-11400H) | 1 Thread | 182.38 ms | 178.60 ms | 191.49 ms | 5.5 FPS | 204.7 MB | Legacy 1024 px single-thread |
-| **SPARK (1024x1024)** | **Laptop CPU Proxy (i5-11400H)** | **4 Threads** | **85.94 ms** | **84.72 ms** | **97.62 ms** | **11.6 FPS** | **207.1 MB** | **Laptop proxy (NOT a Raspberry Pi 4)** |
-| Physical Pi 4 (Cortex-A72) | Raspberry Pi 4B (4 GB) | 4 Threads | *Pending* | *Pending* | *Pending* | *--* | *--* | **PRD Gate: $\le 1000\text{ ms}$ (Pending hardware test)** |
+| SPARK-2021 (640x640) | Intel Xeon (Model 85, 16 Cores) | 1 Thread | **61.54 ms** | 60.81 ms | 65.35 ms | 16.3 FPS | 126.14 MB | Single-thread baseline |
+| **SPARK-2021 (640x640)** | **Intel Xeon (Model 85, 16 Cores)** | **4 Threads** | **23.70 ms** | **22.32 ms** | **28.70 ms** | **42.2 FPS** | **129.34 MB** | **$2.75\times$ speedup vs 1024px** |
+| SPARK-2021 (1024x1024) | Intel Xeon (Model 85, 16 Cores) | 1 Thread | 167.64 ms | 165.98 ms | 175.38 ms | 6.0 FPS | 204.92 MB | $2.72\times$ linear compute scaling |
+| **SPARK-2021 (1024x1024)** | **Intel Xeon (Model 85, 16 Cores)** | **4 Threads** | **65.20 ms** | **64.33 ms** | **72.80 ms** | **15.3 FPS** | **207.36 MB** | **Native 1024px multi-thread** |
+| Physical Pi Edge (640 / 1024) | Raspberry Pi 4 / Pi 5 | 4 Threads | *Pending* | *Pending* | *Pending* | *--* | *--* | **PRD Gate: $\le 1000\text{ ms}$ (Open Hardware Gate)** |
 
 ---
 
 ## 5. Scientific Rigor & Caveats
 
-1. **Host Proxy vs. Physical Edge:**
-   - The 85.94 ms latency was achieved on an Intel Core i5-11400H laptop CPU with 4 threads, which serves as a development proxy.
-   - An ARM Cortex-A72 (Raspberry Pi 4) is substantially slower. The official PRD requirement is **$\le 1000\text{ ms}$** on real edge hardware, which remains the binding project target.
+1. **Workstation Proxy vs. Physical Edge:**
+   - The 23.70 ms (640px) and 65.20 ms (1024px) latencies were achieved on a 16-core Intel Xeon workstation CPU, serving as an upper-bound compute proxy.
+   - Low-power ARM SBCs (Raspberry Pi 4 / Pi 5) are substantially more constrained. The official PRD requirement is **$\le 1000\text{ ms}$** on real physical edge hardware, which remains the binding open gate.
 2. **Metric Saturation:**
-   - mAP@0.5 is at 99.50%, which leaves virtually no dynamic range to measure improvements or degradation during quantization. All future model evaluations will report **mAP@0.5:0.95 (currently 94.13%)** as the primary figure of merit.
-3. **Data Splitting & Leakage Risk:**
-   - The initial SPARK split was generated per-image. If consecutive orbital frames from the same video sequence were placed into both train and validation sets, metrics may be optimistic. Phase 2 introduces trajectory-aware sequence splitting.
+   - mAP@0.5 is saturated at $>98.7\%$, which leaves virtually no dynamic range to measure improvements or degradation during quantization. All future model evaluations report **mAP@0.5:0.95** as the primary headline metric.
+3. **Data Splitting & Leakage Risk (Split Leakage NOT Ruled Out):**
+   - The initial SPARK split was generated per-image. In synthetic orbital video trajectories, adjacent frames may appear across splits if not grouped by trajectory ID. Because global perceptual difference hashing (dHash) collapsed due to uniform solid black space backgrounds (>95% black pixels), the audit could not verify sequence independence. **Split leakage has not been ruled out.** Trajectory-level sequence splitting and bounding-box ROI perceptual hashing remain required.
 
 ---
 
@@ -158,12 +158,16 @@ Following the completion and verification of Phase 1, the official **SPARK-2021 
 Crucially, **SPARK-2021 contains 25,000 confirmed debris annotations across 5 geometric debris types**, resolving the zero-debris limitation of Phase 1 and restoring the project's original primary mission scope.
 
 A 50-epoch deep training run on an NVIDIA Quadro GV100 GPU (`spark2021_yolov8n_50e`) successfully converged:
-- **Test Set Accuracy:** **99.02% mAP@50**, **86.98% mAP@50-95** (across all 11 classes).
-- **Debris Class Performance:** **98.34% mAP@50**, **85.39% mAP@50-95**, **97.75% Precision**, **97.34% Recall**.
-- **Edge ONNX Latency (1024px, 4 CPU threads):** **67.54 ms (14.8 FPS)**, **207.18 MB peak RSS memory**.
+- **Test Set Accuracy:** **99.02% mAP@50**, **86.98% mAP@50-95** (at 1024px across all 11 classes).
+- **Debris Class Performance:** **98.34% mAP@50**, **85.39% mAP@50-95** (at 1024px), **82.81% mAP@50-95** (at 640px).
+- **Multi-Scale Pareto Optimization:** Evaluated across resolutions without retraining. 640px retains **85.06% headline mAP@50-95** (only -1.92% drop) while cutting pixel compute by 61%.
+- **Single-Machine Edge ONNX Benchmarks (16-Core Xeon Workstation):**
+  - **640x640 (4 CPU Threads):** **23.70 ms (42.2 FPS)**, **129.34 MB peak RSS memory** ($2.75\times$ speedup, -37.6% RAM).
+  - **1024x1024 (4 CPU Threads):** **65.20 ms (15.3 FPS)**, **207.36 MB peak RSS memory**.
 - **Edge Compilations:** Successfully exported to `best.onnx` and `best_ncnn_model/` for direct Raspberry Pi 4 edge deployment.
+- **Split Leakage Audit:** Audited via 64-bit dHash; identified deep-space black-background false duplicate bias alongside sequence temporal correlation.
 
-👉 **Full Report:** See [`docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md) and [`docs/decisions.md` (DEC-07)](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md).
+👉 **Full Report:** See [`docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md) and [`docs/decisions.md` (DEC-07 & DEC-10)](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md).
 
 ---
 
