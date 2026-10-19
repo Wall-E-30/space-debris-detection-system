@@ -71,7 +71,18 @@ def benchmark_onnx(
         sess_options=opts,
         providers=providers,
     )
-    input_name = session.get_inputs()[0].name
+    input_meta = session.get_inputs()[0]
+    input_name = input_meta.name
+    input_shape = input_meta.shape
+
+    # Auto-detect and respect static ONNX input dimensions
+    if len(input_shape) == 4 and isinstance(input_shape[2], int) and isinstance(input_shape[3], int):
+        expected_h, expected_w = input_shape[2], input_shape[3]
+        if imgsz != expected_h:
+            print(f"[INFO] ONNX model has static input resolution {expected_w}x{expected_h}. "
+                  f"Auto-adjusting benchmark tensor from {imgsz}x{imgsz} to {expected_w}x{expected_h}.")
+            imgsz = expected_h
+
     dummy_input = np.random.randn(1, 3, imgsz, imgsz).astype(np.float32)
 
     # 1. Warmup runs
