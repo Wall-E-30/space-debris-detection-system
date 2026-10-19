@@ -21,7 +21,7 @@ This document records major technical, architectural, and deployment decisions f
 
 **Export to NCNN as primary, keep ONNX as portable fallback, drop Edge Impulse for this deployment.**
 
-- **NCNN:** Primary deployment runtime for Raspberry Pi 4 demo (`model.export(format="ncnn")`). Achieves up to ~5x speedup over standard ONNX on ARM CPU.
+- **NCNN:** Primary deployment runtime hypothesis for Raspberry Pi 4 demo (`model.export(format="ncnn")`). Hypothesized to achieve up to ~2–5x speedup over standard ONNX on ARM CPU due to NEON/fp16 vectorization, pending empirical verification on physical hardware.
 - **ONNX:** Interchange format kept as fallback for cross-platform hardware validation.
 - **Edge Impulse:** Excluded for YOLOv8n detector backbone (suitable only if adding TinyML pre-filters later).
 
@@ -255,7 +255,7 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
    - **Synthetic Debris Class (Class 6) Test mAP@50:** **98.34%**
    - **Synthetic Debris Class (Class 6) Test mAP@50-95:** **85.39%** (82.81% at 640px)
 3. **Edge Optimization:** The model was compiled to ONNX FP32 (23.70 ms at 640px, 65.20 ms at 1024px on 4 CPU threads on identical 16-core workstation) and NCNN (`best_ncnn_model/`), providing dual runtime deployment readiness for the Raspberry Pi 4.
-4. **Leakage Audit Resolution:** Split leakage audit verified that perceptual dHash reports false-duplicate cross-class matches due to uniform black deep-space backgrounds, while recommending trajectory-level grouping for future dataset releases.
+4. **Leakage Audit Status (Split Leakage NOT Ruled Out):** Initial global perceptual dHash collapsed due to uniform solid black space backgrounds (>95% black pixels), resulting in false-duplicate cross-class matches. Because global thumbnail hashing failed to isolate foreground spacecraft from empty background space, split leakage has NOT been ruled out. Trajectory-level sequence splitting and bounding-box ROI perceptual hashing are required.
 
 ### Architectural Decision:
 - **Supersession of Branch B:** The project returns to its primary original objective: quantitative detection and edge tracking of both **operational spacecraft AND synthetic space debris**.

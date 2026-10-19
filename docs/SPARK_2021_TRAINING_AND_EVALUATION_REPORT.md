@@ -17,12 +17,12 @@ During Phase 1, an exhaustive audit of the initial SPARK dataset release reveale
 
 With the acquisition and processing of the official **SPARK-2021 dataset**, this limitation has been completely resolved:
 1. **Ground-Truth Debris Identified:** SPARK-2021 contains **25,000 confirmed debris annotations** (16.67% of the dataset) alongside 125,000 satellite annotations across 10 spacecraft classes.
-2. **50-Epoch Deep Training on Quadro GV100:** The YOLOv8-Nano model was trained for 50 full epochs (122,183 seconds / ~33.94 hours) on an NVIDIA Quadro GV100 GPU (32 GB VRAM) with checkpointing every 5 epochs.
-3. **High-Accuracy Debris Detection:** On the unpolluted, held-out **test set (30,000 images)**, the model achieved **98.34% mAP@50** and **85.39% mAP@50-95** specifically on the **Debris** class.
+2. **50-Epoch Deep Training on Quadro GV100:** The YOLOv8-Nano model was trained for 50 full epochs (122,183 seconds / ~33.94 hours) on an NVIDIA Quadro GV100 GPU (32 GB VRAM) on a **180,000-image training set** (90,000 raw training images + 90,000 offline photometric augmented images) with checkpointing every 5 epochs.
+3. **High-Accuracy Debris Detection:** On the held-out **test set (30,000 images, split leakage not ruled out)**, the model achieved **98.34% mAP@50** and **85.39% mAP@50-95** specifically on the **Debris** class (evaluated across 5 synthetic CAD models).
 4. **Overall Model Performance:** Across all 11 classes, the model achieved **99.02% mAP@50** and **86.98% mAP@50-95** on the frozen test set at native 1024 px resolution.
 5. **Multi-Scale Pareto Curve Established:** Evaluating the exact same `best.pt` weights at 640 px, 800 px, and 1024 px reveals that scaling from 1024 px down to 640 px retains **85.06% mAP@50-95** (only a 1.92% drop) and **82.81% Debris mAP@50-95**, while unlocking a **$2.75\times$ CPU inference speedup** (23.70 ms vs 65.20 ms) and a **37.6% drop in peak RAM footprint** (129.34 MB vs 207.36 MB).
-6. **Single-Machine Benchmark Attribution:** All edge proxy benchmarks have been measured on the **identical 16-core workstation CPU**, eliminating cross-machine discrepancies. The physical Raspberry Pi 4 edge benchmark remains the definitive open gate.
-7. **Split Leakage Audit Analyzed:** A perceptual dHash audit across 550 test images and 5,000 train images revealed how uniform black space backgrounds bias global thumbnail hashing, alongside identifying trajectory-level temporal correlation in synthetic orbital sequences.
+6. **Single-Machine Benchmark Attribution:** All edge proxy benchmarks have been measured on the **identical 16-core workstation CPU**, eliminating cross-machine discrepancies. The physical Raspberry Pi 4 / Pi 5 edge benchmark remains the definitive open gate.
+7. **Split Leakage Audit Status:** A perceptual dHash audit across 550 test images and 5,000 train images revealed how uniform black space backgrounds cause global thumbnail hashes to collapse, preventing definitive sequence independence verification. Therefore, **split leakage is not ruled out**.
 
 ---
 
@@ -55,16 +55,20 @@ The dataset was audited using `scripts/audit_spark_annotations.py` (record: `out
 
 ## 3. Training Run Analysis (`spark2021_yolov8n_50e`)
 
-### Training Hyperparameters & Configuration:
-- **Base Architecture:** YOLOv8-Nano (`yolov8n.pt`)
+### Training Hyperparameters & Dataset Composition:
+- **Base Architecture:** YOLOv8-Nano (`yolov8n.pt`, 3.01M parameters)
 - **Input Resolution:** $1024 \times 1024$ px
 - **Batch Size:** 16 (optimized for 32 GB VRAM on Quadro GV100)
-- **Epochs:** 50
-- **Training Time:** 122,183 seconds (~33.94 hours)
-- **Optimizer:** Auto (SGD with momentum 0.937, weight decay 0.0005)
-- **Augmentation Disclosure & Distinction:**
-  - **Online Augmentations (Active):** Full $360^\circ$ rotation invariance (`degrees=180.0`), vertical flip (`flipud=0.5`), horizontal flip (`fliplr=0.5`), random erasing (`erasing=0.4`), and color/saturation/exposure jitter (`hsv_h=0.015`, `hsv_s=0.7`, `hsv_v=0.4`).
-  - **Offline Photometric Pipeline (`src/data/augment.py`):** **NOT executed** on the 90,000 raw training images prior to this 50-epoch run. While online HSV jitter was active, domain-gap mitigation via synthetic Gaussian sensor read noise and optical blur was not applied to this run and remains an open optimization.
+- **Training Corpus Composition (180,000 Images):**
+  - **Raw SPARK-2021 Training Images:** 90,000 images (75,000 satellites + 15,000 debris).
+  - **Offline Augmented Images (`aug1_*`):** 90,000 images generated via the photometric pipeline ([`src/data/augment.py`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/data/augment.py)) applying solar flare contrast jitter, orbital motion blur, and Gaussian sensor read noise.
+  - **Total Training Set:** **180,000 images** (15,000 per satellite class, 30,000 for Debris, as verified in `labels.jpg`).
+- **Batches and Timing:**
+  - **Batches per Epoch:** $\frac{180,000}{16} = 11,250$ batches/epoch.
+  - **Total Iterations across 50 Epochs:** $11,250 \times 50 = 562,500$ batches.
+  - **Mosaic Disablement Milestone:** At epoch 40, mosaic augmentation was closed, producing `train_batch450000.jpg` ($11,250 \times 40 = 450,000$).
+  - **Total Duration:** 122,183 seconds (~33.94 hours, averaging 2,443.7 seconds / ~40.7 minutes per epoch).
+- **Online Augmentations (Active during Training):** Full $360^\circ$ rotation invariance (`degrees=180.0`), vertical flip (`flipud=0.5`), horizontal flip (`fliplr=0.5`), random erasing (`erasing=0.4`), and color/saturation/exposure jitter (`hsv_h=0.015`, `hsv_s=0.7`, `hsv_v=0.4`).
 - **Checkpointing Protocol:** Saved every 5 epochs (`epoch5.pt`, `epoch10.pt`, ..., `epoch45.pt`, `epoch50.pt`, `last.pt`, `best.pt`).
 
 ### Loss & Metric Convergence Progression:
@@ -75,7 +79,7 @@ The dataset was audited using `scripts/audit_spark_annotations.py` (record: `out
 | **Epoch 10** | 0.882 | 0.703 | 1.378 | 0.691 | 0.9533 | 0.6136 | Initial stabilization |
 | **Epoch 20** | 0.818 | 0.628 | 0.743 | 0.382 | 0.9841 | 0.8054 | Rapid mAP@50-95 gain |
 | **Epoch 30** | 0.771 | 0.577 | 0.678 | 0.344 | 0.9866 | 0.8289 | Smooth plateau |
-| **Epoch 40** | 0.710 | 0.509 | 0.629 | 0.317 | 0.9880 | 0.8478 | Pre-mosaic closure |
+| **Epoch 40** | 0.710 | 0.509 | 0.629 | 0.317 | 0.9880 | 0.8478 | Pre-mosaic closure (batch 450,000) |
 | **Epoch 41–50** | **0.496** | **0.247** | **0.572** | **0.290** | **0.9894** | **0.8677** | Mosaic disabled; fine detail refinement |
 
 ---
@@ -143,19 +147,52 @@ Evaluating at 640 px retains **97.8% of the model's headline spatial localizatio
 
 ---
 
-## 5. Data-Driven Weak Class & Debris Analysis
+---
 
-Rather than speculating on optical artifacts, the performance discrepancies are directly grounded in the empirical bounding box and class geometry data:
+## 5. Empirical Confusion Matrix & Weak-Class Analysis
 
-1. **CubeSat (0.6341 mAP@50-95 at 1024px / 0.5920 at 640px — Weakest Class):**
-   - **Root Cause from Data:** CubeSat exhibits the smallest physical pixel bounding box area across the entire dataset ($< 100 \times 100$ px at standard camera distances, scaling down to $< 30 \times 30$ px at 640px).
-   - **Mechanism:** In YOLOv8, small objects allocate few grid points on the P3 feature map. While coarse detection presence is high (**96.98% mAP@50**), a boundary shift of just 3–5 pixels severely degrades strict intersection-over-union (IoU $\ge 0.75-0.95$), heavily penalizing mAP@50-95.
-2. **TRMM (0.7776 mAP@50-95 at 1024px / 0.7544 at 640px — Second Weakest Class):**
-   - **Root Cause from Data:** TRMM features wide cross-like solar panels and an extended radar dish.
-   - **Mechanism:** As TRMM tumbles, axis-aligned bounding boxes encompass large regions of empty black space between extended appendages. The resulting aspect-ratio variance increases boundary regression loss.
-3. **Synthetic Space Debris (Class 6: 0.8539 mAP@50-95 at 1024px / 0.8281 at 640px):**
-   - **Root Cause from Data:** Unlike the other 10 classes which represent a single fixed spacecraft design each, `Debris` is a **polymorphic consolidated class** aggregating 5 separate 3D geometric debris models (adapters, rocket fragments, damaged panels).
-   - **Result:** The 85.39% mAP@50-95 reflects intra-class geometric diversity rather than tracking failure. Precision (97.75%) and Recall (97.34%) confirm that false alarms and misses are well-bounded.
+Evidence: `experiments/spark2021_yolov8n_50e/confusion_matrix_normalized.png`
+
+### 5.1 Normalized Confusion Matrix (Test Set, 30,000 Images)
+
+The normalized confusion matrix generated during validation shows the exact distribution of true targets (rows) across predicted classes and background (columns):
+
+| True Class \ Predicted | AcrimSat | Aquarius | Aura | Calipso | Cloudsat | CubeSat | **Debris** | Jason | Sentinel-6 | Terra | TRMM | **Background (Misses)** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **AcrimSat** | **0.98** | -- | -- | -- | 0.02 | -- | -- | -- | 0.01 | -- | -- | **0.02** |
+| **Aquarius** | -- | **0.95** | -- | 0.01 | 0.03 | -- | -- | -- | 0.01 | -- | -- | **0.06** |
+| **Aura** | -- | -- | **0.90** | -- | 0.01 | -- | -- | -- | 0.01 | 0.03 | -- | **0.06** |
+| **Calipso** | -- | 0.01 | -- | **0.91** | 0.06 | -- | -- | -- | 0.10 | -- | 0.01 | **0.09** |
+| **Cloudsat** | -- | -- | -- | -- | **0.72** | 0.01 | 0.01 | -- | 0.01 | -- | -- | **0.06** |
+| **CubeSat** | -- | -- | -- | -- | 0.04 | **0.95** | -- | -- | -- | -- | 0.01 | **0.15** |
+| **Debris (Target)** | -- | 0.01 | 0.01 | 0.02 | 0.06 | 0.01 | **0.97** | -- | 0.03 | 0.01 | -- | **0.19** |
+| **Jason** | -- | 0.01 | 0.01 | 0.05 | 0.04 | -- | -- | **0.87** | -- | -- | -- | **0.04** |
+| **Sentinel-6** | -- | 0.01 | 0.01 | -- | -- | -- | -- | -- | **0.92** | 0.01 | -- | **0.07** |
+| **Terra** | -- | -- | 0.07 | -- | 0.01 | -- | -- | -- | 0.01 | 0.02 | **0.92** | **0.24** |
+| **TRMM** | -- | 0.01 | -- | -- | 0.01 | -- | -- | -- | -- | 0.01 | **0.98** | **0.02** |
+| **Background (False Alarms)**| -- | -- | -- | -- | -- | 0.03 | **0.01** | -- | -- | 0.01 | -- | -- |
+
+---
+
+### 5.2 Data-Driven Insights: Where Errors Actually Occur
+
+1. **Synthetic Space Debris (Class 6: 0.97 True Positive, 0.8539 mAP@50-95):**
+   - **True Positive & Miss Rate:** True debris recall is high (**97%** on diagonal), with only **0.01 missed into background**.
+   - **Background False Alarm Leakage:** **0.19 of empty background false detections are predicted as Debris** (the second highest background false alarm rate after Terra at 0.24). In low-illumination orbital imagery, sensor noise and background stars occasionally trigger debris false alarms.
+   - **Cross-Class Confusion:** 0.06 of debris is confused as Cloudsat, and 0.03 as Sentinel-6.
+   - **CRITICAL GENERALIZATION LIMITATION (5 Synthetic CAD Models):**  
+     SPARK-2021 synthesizes debris from only **five specific 3D CAD debris models** (payload adapters, fragmented panels, and rocket stages). The exact same five models appear in both the training set and the test set under varying rotations, lighting, and camera distances.  
+     > [!CAUTION]
+     > The **85.39% mAP@50-95 score demonstrates high-accuracy shape recognition of those five specific synthetic models**, NOT zero-shot generalization to arbitrary, tumbling, or unmodeled space debris fragments in real orbit.
+
+2. **CubeSat (0.95 True Positive, 0.6341 mAP@50-95 — Weakest Headline Score):**
+   - **Root Cause from Empirical Geometry:** As verified in `labels.jpg`, CubeSat occupies the smallest physical bounding box area in the dataset (frequently $< 100 \times 100$ px at 1024px, scaling down to $< 30 \times 30$ px at 640px).
+   - **Confusion Matrix Evidence:** CubeSat has the highest background false alarm rate (**0.15**) and the highest miss rate (**0.03** into background).
+   - **IoU Regression Sensitivity:** Despite 95% classification accuracy on the diagonal, boundary errors of only 3–5 pixels severely degrade strict intersection-over-union at high thresholds ($\text{IoU} \ge 0.75-0.95$), heavily depressing mAP@50-95.
+
+3. **TRMM (0.98 True Positive, 0.7776 mAP@50-95 — Second Weakest Headline Score):**
+   - **Empirical Refutation of Informal Hypotheses:** Earlier informal speculations attributed TRMM's score to visual class confusion. The confusion matrix firmly refutes this: TRMM achieves a **0.98 True Positive classification rate**, with only 0.02 background confusion.
+   - **Mechanism:** TRMM is classified almost perfectly by YOLOv8. The lower mAP@50-95 (77.76%) is strictly a **bounding box boundary regression error at strict IoUs ($\ge 0.75-0.95$)**, where small boundary shifts around its extremities lower the multi-threshold average precision.
 
 ---
 
@@ -171,7 +208,7 @@ To eliminate cross-machine timing skew, the exported ONNX model (`best.onnx`, 13
 | **640 x 640** | **4 Threads** | **23.70 ms** | **22.32 ms** | **28.70 ms** | **42.2 FPS** | **129.34 MB** | **Intel Xeon (Model 85, 16 Cores)** |
 | **1024 x 1024** | 1 Thread | 167.64 ms | 165.98 ms | 175.38 ms | 6.0 FPS | 204.92 MB | Intel Xeon (Model 85, 16 Cores) |
 | **1024 x 1024** | **4 Threads** | **65.20 ms** | **64.33 ms** | **72.80 ms** | **15.3 FPS** | **207.36 MB** | **Intel Xeon (Model 85, 16 Cores)** |
-| **640 / 1024** | **4 Threads** | *Pending* | *Pending* | *Pending* | *--* | *--* | **Target Edge Hardware (Raspberry Pi 4)** |
+| **640 / 1024** | **4 Threads** | *Pending* | *Pending* | *Pending* | *--* | *--* | **Target Edge Hardware (Raspberry Pi 4 / Pi 5)** |
 
 ### Single-Machine Compute & Memory Scaling Analysis:
 1. **$2.75\times$ Latency Reduction at 640 px:**  
@@ -183,11 +220,11 @@ To eliminate cross-machine timing skew, the exported ONNX model (`best.onnx`, 13
    Both resolutions were profiled using the exact same executable, OS environment, and 16-core CPU. Previous provisional comparisons between an i5 laptop and a Xeon workstation have been completely eliminated.
 
 > [!WARNING]
-> ### The Physical Raspberry Pi 4 Gate
-> While 23.70 ms (42 FPS) and 65.20 ms (15 FPS) are comfortably below the PRD ceiling on the 16-core workstation CPU, an ARM Cortex-A72 (Raspberry Pi 4) is substantially slower.  
-> - At 1024 px, meeting the **$\le 1000\text{ ms}$** constraint will be tight.  
-> - At 640 px, the $2.75\times$ compute reduction and 129 MB footprint provide a high-confidence safety margin.  
-> - **Physical execution on the Raspberry Pi 4 is the primary pending gate.**
+> ### The Physical Edge Hardware Gate
+> While 23.70 ms (42 FPS) and 65.20 ms (15 FPS) are comfortably below the PRD ceiling on the 16-core workstation CPU, low-power ARM SBCs (Raspberry Pi 4 / Pi 5) are substantially slower.  
+> - At 1024 px, meeting the **$\le 1000\text{ ms}$** constraint on Pi 4 will be tight (though easily met on Pi 5).  
+> - At 640 px, the $2.75\times$ compute reduction and 129 MB footprint provide a high-confidence safety margin across both Pi 4 and Pi 5.  
+> - **Physical execution on the Raspberry Pi remains the primary pending gate.**
 
 ---
 
@@ -197,30 +234,30 @@ To eliminate cross-machine timing skew, the exported ONNX model (`best.onnx`, 13
 |---|---|---|---|
 | **Annotated Debris Instances** | **0** (0.00%) | **25,000** (16.67%) | Restores synthetic space debris detection scope |
 | **Number of Classes** | 10 Classes (Satellites only) | 11 Classes (10 Satellites + Synthetic Debris) | Multi-target recognition across active and defunct assets |
-| **Total Dataset Size** | 80,000 images | 150,000 images | 1.875x expansion in ground truth corpus |
-| **Evaluation Splits** | Train (60k) / Val (20k) | Train (90k) / Val (30k) / Test (30k) | Dedicated frozen held-out test split |
+| **Total Dataset Size** | 80,000 images | 150,000 images (180,000 trained with `aug1_*`) | 1.875x expansion in ground truth corpus |
+| **Evaluation Splits** | Train (60k) / Val (20k) | Train (90k) / Val (30k) / Test (30k) | Dedicated held-out test split |
 | **mAP@50-95 (Headline)** | 94.13% (Spacecraft only) | **86.98%** (1024px) / **85.06%** (640px) | Grounded on 11-class multi-target problem |
-| **Synthetic Debris mAP@50-95**| *N/A (0 debris)* | **85.39%** (1024px) / **82.81%** (640px) | First verified quantitative debris score in project history |
+| **Synthetic Debris mAP@50-95**| *N/A (0 debris)* | **85.39%** (1024px) / **82.81%** (640px) | Evaluated across 5 synthetic 3D CAD debris models |
 | **Model Formats Available** | `.pt` | `.pt`, `.onnx`, `.ncnn` | Complete edge deployment triad |
 | **Benchmark Attribution** | Cross-machine proxies | Single-machine matched workstation CPU | Strictly controlled experimental protocol |
 
 ---
 
-## 8. Train/Test Split Leakage Audit & Perceptual Hashing Analysis
+## 8. Train/Test Split Leakage Audit: Perceptual Hash Collapse & Current Status
 
 Evidence: `outputs/audits/split_leakage_audit.json`
 
-To audit potential data leakage between the 90,000 training images and the 30,000 test images, [`scripts/check_split_leakage.py`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/scripts/check_split_leakage.py) was executed with multi-threaded perceptual difference hashing (dHash) comparing 550 test samples against 5,000 train samples:
+To audit potential data leakage between the training images (including offline `aug1_*` variations) and the 30,000 test images, [`scripts/check_split_leakage.py`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/scripts/check_split_leakage.py) was executed using 64-bit difference hashing (dHash) comparing 550 test samples against 5,000 train samples:
 
-### Audit Execution Parameters:
-- **Audited Training Samples:** 5,000 images (sampled from 180,000 files including offline variations)
+### Audit Execution Parameters & Reported Output:
+- **Audited Training Samples:** 5,000 images (sampled from 180,000 files in `images/train`)
 - **Audited Test Samples:** 550 images (sampled from 30,000 test files)
 - **Hash Function:** 64-bit difference hash (dHash, $9 \times 8$ grayscale gradient)
 - **Near-Duplicate Match Threshold:** Hamming distance $\le 3$ bits
 - **Reported Matches:** 337 near-duplicates (61.27% raw match rate, average min distance: 4.63)
 
-### Technical Analysis: Why Global dHash Over-Reports Duplicates in Space Vision
-Inspection of the match pairs reveals an essential domain-specific optical insight:
+### Technical Finding: Global Hash Collapse on Black Space Backgrounds
+Inspection of the match pairs demonstrates why the raw 61.27% number does NOT answer the leakage question:
 ```json
 {"test_image": "Terra_image_09314_img.jpg", "train_match": "AcrimSat_image_11557_img.jpg", "hamming_distance": 0}
 {"test_image": "Debris_image_15739_img.jpg", "train_match": "CubeSat_image_05623_img.jpg", "hamming_distance": 0}
@@ -228,24 +265,27 @@ Inspection of the match pairs reveals an essential domain-specific optical insig
 {"test_image": "TRMM_image_17541_img.jpg", "train_match": "AcrimSat_image_11557_img.jpg", "hamming_distance": 0}
 ```
 
-1. **Cross-Class Zero-Distance Anomaly:**  
-   Entirely different classes (e.g. `Terra` vs `AcrimSat`, `Debris` vs `CubeSat`) match with **Hamming distance 0**.
-2. **The Physics of Deep-Space Imagery:**  
-   In orbital vision, $>95\%$ of image pixels consist of pure black space ($\text{RGB} = [0, 0, 0]$). When a $1024 \times 1024$ image containing a small satellite ($<50 \times 50$ px) is downsampled to an $8 \times 8$ thumbnail, the satellite occupies less than $0.2\%$ of the total pixels. The resulting downsampled thumbnail is virtually flat black across all rows, collapsing the computed dHash gradient to an identical bit-vector regardless of the foreground object.
-3. **Genuine Trajectory Redundancy:**  
-   Alongside the background artifact, real sequence redundancy exists: SPARK-2021 synthesizes orbital trajectories over time. In splits randomized uniformly across frames, adjacent video frames of the *same* class (e.g. `Jason_image_12198` and `Jason_image_01526`, or `aug1_CubeSat_image_06578` and `CubeSat_image_25290`) appear in both train and test splits, sharing solar angles and star backgrounds.
-4. **Methodological Recommendations:**  
-   - Future dataset revisions should enforce **trajectory-level splitting** (grouping all frames from a rendering trajectory strictly into train OR test).
-   - Perceptual hashing for space vision should be computed on **bounding-box cropped regions of interest (ROI)** rather than full-frame thumbnails to isolate target features from empty background space.
+1. **Hash Collapse:** Entirely distinct spacecraft classes (`Terra` vs `AcrimSat`, `Debris` vs `CubeSat`) match with **Hamming distance 0**. In orbital vision, $>95\%$ of image pixels are solid black background ($\text{RGB} = [0,0,0]$). When a full image is downsampled to an $8 \times 8$ thumbnail, small targets occupy $<0.2\%$ of pixels, collapsing the computed dHash gradient to an identical bit-vector regardless of the foreground object.
+2. **Current Status (Split Leakage NOT Ruled Out):**  
+   Because global thumbnail hashing collapsed on empty background pixels, the audit method was ineffective at isolating foreground spacecraft. Consequently:
+   > [!IMPORTANT]
+   > **Split leakage has NOT been ruled out.** In synthetic orbital sequences, consecutive frames may appear in both train and test splits if the original benchmark was split uniformly rather than by trajectory ID.
+3. **Required Remediation:**  
+   Definitively resolving leakage requires comparing **bounding-box cropped regions of interest (ROI)** or deep feature embeddings, rather than full-frame thumbnails.
 
 ---
 
 ## 9. Summary of Verification Gates & Next Steps
 
 1. **Phase 1 Foundations:** [PASS] Complete evaluation harness, dataset audit, and model training pipeline.
-2. **Debris Detection Restoration:** [PASS] 25,000 synthetic space debris annotations integrated and evaluated at 85.39% mAP@50-95.
+2. **Debris Detection Scope:** [PASS] 25,000 synthetic space debris annotations integrated and evaluated at 85.39% mAP@50-95 (on 5 synthetic models).
 3. **Multi-Resolution Pareto Optimization:** [PASS] 640px achieves 85.06% mAP@50-95 with $2.75\times$ speedup and 129 MB RAM footprint.
 4. **Single-Machine Benchmark Attribution:** [PASS] Workstation CPU benchmark established (23.70 ms at 640px, 65.20 ms at 1024px).
-5. **Physical Raspberry Pi 4 Edge Benchmark:** [OPEN GATE] Compile and run NCNN and ONNX benchmarks on physical Raspberry Pi 4 hardware to confirm compliance with the $\le 1000\text{ ms}$ PRD gate.
+5. **Immediate Next Step (Benchmark 800 px on Workstation):**  
+   To complete the 3-resolution Pareto curve on the identical Xeon workstation CPU, run:
+   ```bash
+   python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 800 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
+   ```
+6. **Physical Raspberry Pi Edge Benchmark:** [OPEN GATE] Compile and run NCNN and ONNX benchmarks on physical Raspberry Pi 4 / Pi 5 hardware to confirm compliance with the $\le 1000\text{ ms}$ PRD gate.
 
 
