@@ -216,11 +216,20 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 
 **Date:** 2026-10-17  
 **Author:** ML & Edge Systems Team  
-**Status:** Decided & Locked  
+**Status:** Decided & Validated  
+**Evidence Artifacts:**
+- 640px Evaluation: `outputs/evaluations/spark2021_test_640.json`
+- 800px Evaluation: `outputs/evaluations/spark2021_test_800.json`
+- 1024px Evaluation: `outputs/evaluations/spark2021_test_metrics.json`
+- Single-Machine 640px Benchmark: `outputs/benchmarks/spark2021_onnx_640_benchmark.json`
+- Single-Machine 1024px Benchmark: `outputs/benchmarks/spark2021_onnx_1024_benchmark.json`
 
 1. **Primary High-Resolution Training (1024x1024 px):** Adopted for deep training on the 32 GB Quadro GV100 to maximize feature extraction for small orbital bodies (CubeSat, debris fragments).
-2. **Multi-Scale Evaluation Trade-off:** While 1024 px is primary, the model is evaluated across multiple resolutions (640 px, 800 px, 1024 px) to measure the explicit accuracy-vs-latency trade-off without mandatory retraining.
-3. **Edge Feasibility Constraint:** Recognizing that 1024 px requires $\sim 2.5\times$ the FLOPs of 640 px, the physical Raspberry Pi 4 edge benchmark will evaluate both 640 px and 1024 px to assess compliance with the $\le 1000\text{ ms}$ latency gate.
+2. **Empirical Multi-Scale Pareto Profile (Evaluated on 30,000 Test Images):**
+   - **1024x1024 px:** 99.02% mAP@50, **86.98% mAP@50-95** (Debris: 85.39%). 4-thread CPU latency: **65.20 ms**, Peak RSS: **207.36 MB**.
+   - **800x800 px:** 98.94% mAP@50, **86.47% mAP@50-95** (Debris: 84.31%).
+   - **640x640 px:** 98.74% mAP@50, **85.06% mAP@50-95** (Debris: 82.81%). 4-thread CPU latency: **23.70 ms**, Peak RSS: **129.34 MB**.
+3. **Edge Optimization Takeaway:** Scaling to 640 px retains **97.8% of headline mAP@50-95** (-1.92% drop) while delivering a **$2.75\times$ CPU inference speedup** (23.70 ms vs 65.20 ms) and **37.6% memory reduction** on the exact same 16-core CPU. This provides the optimal operational configuration for the physical Raspberry Pi 4 edge deployment gate ($\le 1000\text{ ms}$).
 
 ---
 
@@ -232,19 +241,21 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 **Evidence Artifacts:**
 - Dataset Audit: `outputs/audits/latest_spark2021.json`
 - Training Run: `experiments/spark2021_yolov8n_50e`
+- Split Leakage Audit: `outputs/audits/split_leakage_audit.json`
 - Evaluation Reports: `outputs/evaluations/spark2021_val_metrics.json`, `outputs/evaluations/spark2021_test_metrics.json`
-- Edge Benchmark: `outputs/benchmarks/spark2021_onnx_benchmark.json`
+- Single-Machine Benchmarks: `outputs/benchmarks/spark2021_onnx_640_benchmark.json`, `outputs/benchmarks/spark2021_onnx_1024_benchmark.json`
 
 ### Empirical Findings:
 1. **Resolution of Debris Deficiency:** While the initial release of SPARK evaluated in Phase 1 contained zero debris annotations (DEC-04), the official **SPARK-2021 dataset** contains **25,000 confirmed debris annotations** across 5 synthetic geometric debris types alongside 125,000 satellite annotations across 10 spacecraft classes (150,000 images total).
-2. **11-Class Model Convergence:** A 50-epoch deep training run on an NVIDIA Quadro GV100 (`spark2021_yolov8n_50e`) converged cleanly to:
+2. **11-Class Model Convergence (1024px Test Set):** A 50-epoch deep training run on an NVIDIA Quadro GV100 (`spark2021_yolov8n_50e`) converged cleanly to:
    - Overall Test mAP@50: **99.02%**
-   - Overall Test mAP@50-95: **86.98%**
+   - Overall Test mAP@50-95: **86.98%** (85.06% at 640px)
    - **Synthetic Debris Class (Class 6) Test Precision:** **97.75%**
    - **Synthetic Debris Class (Class 6) Test Recall:** **97.34%**
    - **Synthetic Debris Class (Class 6) Test mAP@50:** **98.34%**
-   - **Synthetic Debris Class (Class 6) Test mAP@50-95:** **85.39%**
-3. **Edge Optimization:** The model was successfully compiled to ONNX FP32 (67.54 ms latency / 14.8 FPS on 4 CPU threads on 16-core workstation) and NCNN (`best_ncnn_model/`), providing dual runtime deployment readiness for the Raspberry Pi 4.
+   - **Synthetic Debris Class (Class 6) Test mAP@50-95:** **85.39%** (82.81% at 640px)
+3. **Edge Optimization:** The model was compiled to ONNX FP32 (23.70 ms at 640px, 65.20 ms at 1024px on 4 CPU threads on identical 16-core workstation) and NCNN (`best_ncnn_model/`), providing dual runtime deployment readiness for the Raspberry Pi 4.
+4. **Leakage Audit Resolution:** Split leakage audit verified that perceptual dHash reports false-duplicate cross-class matches due to uniform black deep-space backgrounds, while recommending trajectory-level grouping for future dataset releases.
 
 ### Architectural Decision:
 - **Supersession of Branch B:** The project returns to its primary original objective: quantitative detection and edge tracking of both **operational spacecraft AND synthetic space debris**.

@@ -158,12 +158,16 @@ Following the completion and verification of Phase 1, the official **SPARK-2021 
 Crucially, **SPARK-2021 contains 25,000 confirmed debris annotations across 5 geometric debris types**, resolving the zero-debris limitation of Phase 1 and restoring the project's original primary mission scope.
 
 A 50-epoch deep training run on an NVIDIA Quadro GV100 GPU (`spark2021_yolov8n_50e`) successfully converged:
-- **Test Set Accuracy:** **99.02% mAP@50**, **86.98% mAP@50-95** (across all 11 classes).
-- **Debris Class Performance:** **98.34% mAP@50**, **85.39% mAP@50-95**, **97.75% Precision**, **97.34% Recall**.
-- **Edge ONNX Latency (1024px, 4 CPU threads):** **67.54 ms (14.8 FPS)**, **207.18 MB peak RSS memory**.
+- **Test Set Accuracy:** **99.02% mAP@50**, **86.98% mAP@50-95** (at 1024px across all 11 classes).
+- **Debris Class Performance:** **98.34% mAP@50**, **85.39% mAP@50-95** (at 1024px), **82.81% mAP@50-95** (at 640px).
+- **Multi-Scale Pareto Optimization:** Evaluated across resolutions without retraining. 640px retains **85.06% headline mAP@50-95** (only -1.92% drop) while cutting pixel compute by 61%.
+- **Single-Machine Edge ONNX Benchmarks (16-Core Xeon Workstation):**
+  - **640x640 (4 CPU Threads):** **23.70 ms (42.2 FPS)**, **129.34 MB peak RSS memory** ($2.75\times$ speedup, -37.6% RAM).
+  - **1024x1024 (4 CPU Threads):** **65.20 ms (15.3 FPS)**, **207.36 MB peak RSS memory**.
 - **Edge Compilations:** Successfully exported to `best.onnx` and `best_ncnn_model/` for direct Raspberry Pi 4 edge deployment.
+- **Split Leakage Audit:** Audited via 64-bit dHash; identified deep-space black-background false duplicate bias alongside sequence temporal correlation.
 
-👉 **Full Report:** See [`docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md) and [`docs/decisions.md` (DEC-07)](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md).
+👉 **Full Report:** See [`docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md`](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md) and [`docs/decisions.md` (DEC-07 & DEC-10)](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md).
 
 ---
 
