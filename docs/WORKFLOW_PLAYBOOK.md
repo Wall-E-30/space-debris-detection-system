@@ -1,430 +1,478 @@
-# Space Debris Detection System — Operational Workflow Playbook
+# SPARK-2021 Phase 2 Operational Workflow Playbook
+## High-Performance Execution Guide for NVIDIA Quadro GV100 Workstation
 
-> **Dataset Revision Notice (Phase 2):**
-> This playbook supersedes the Phase 1 version which was built around the original SPARK dataset (10 spacecraft classes, **zero debris annotations**). The project has transitioned to **SPARK2021** (SPAcecraft Recognition leveraging Knowledge of space environment, ICIP 2021 Challenge), which provides **11 classes** — 10 satellite models + 1 consolidated Debris class (~25,000 debris images across 5 debris sub-models) — directly addressing the project's core objective of space debris detection.
-
----
-
-## Team Roles & Hardware Matrix
-
-| Role | Primary Responsibilities | Target Hardware | Working Directory |
-|---|---|---|---|
-| **ML Lead** (Role 1) | Model architecture, GPU training loops, hyperparameter tuning, model checkpoints (`best.pt`), full-set mAP evaluation, ONNX export | **Workstation**: NVIDIA Quadro GV100 (32 GB VRAM) | `D:\SPACE_DEBRIS\space-debris-detection-system` |
-| **Data & Edge Lead** (Role 2) | Data ingestion, ZIP extraction, CSV→YOLO conversion, dataset splitting, class auditing, photometric augmentation, edge env health, ONNX/NCNN latency benchmarks | **Local Laptop / Edge Testbed**: Intel Core i5 + NVIDIA RTX 2050 / Raspberry Pi 4/5 | `C:\Users\...\space-debris-detection-system` |
+**Project:** ISRO Hardware & Edge Vision Challenge (Problem Statement #05)  
+**Phase:** 02 — SPARK Dataset Preparation & Stratified Subsetting  
+**Target Hardware:** NVIDIA Quadro GV100 (32 GB VRAM) + 16-Core Intel Xeon CPU  
+**Workstation Base Path:** `D:\SharanyaTIlak_Spoorthy_Indu\space-debris-detection-system`  
+**Dataset:** Official SPARK-2021 (150,000 raw images, 11 classes, ~25,000 synthetic debris annotations)  
+**Date:** October 19, 2026  
+**Status:** **Active Phase 2 Execution Guide**
 
 ---
 
-## Dataset Comparison: Why SPARK2021 Replaces Old SPARK
+## 1. System Architecture & Workstation Profile
 
-| Aspect | Old SPARK (Phase 1) | SPARK2021 (Phase 2+) |
+All commands in this playbook are designed to execute on the **NVIDIA Quadro GV100 Workstation**. The local development laptop is used only for repository git synchronization, code editing, and offline documentation review.
+
+| System Dimension | Workstation Specification | Operational Role in Phase 2 |
 |---|---|---|
-| **Total Classes** | 10 (spacecraft only) | **11** (10 satellites + 1 Debris) |
-| **Debris Annotations** | ❌ Zero | ✅ ~25,000 images (5 debris sub-models merged) |
-| **Total Images** | ~80,000 | **~150,000** (90k train / 30k validate / 30k test) |
-| **Pre-split Test Set** | ❌ None (manual 80/15/5 split needed) | ✅ Provided (`test_labels.csv`, 30k images) |
-| **Depth Maps** | ❌ None | ✅ Paired 16-bit PNG depth per RGB |
-| **Illumination Metadata** | ❌ None | ✅ Per-image illumination value |
-| **BBox Convention** | Standard | Row/Column: `[R_min, C_min, R_max, C_max]` |
-| **CSV Columns** | `Image name, Class` | `class, id, image, depth, bbox, illumination` |
-| **Class Names** | Cheops, LisaPathfinder, Proba2, etc. | AcrimSat, Aquarius, Aura, Calipso, Cloudsat, CubeSat, Debris, Jason, Sentinel-6, Terra, TRMM |
-
-> **Key Implication:** DEC-04 from Phase 1 (which locked the project to "Branch B — 10-class spacecraft detection") is now **superseded**. SPARK2021's Debris class enables the project to pursue its original intent: satellite *and* debris detection.
+| **GPU Accelerator** | **NVIDIA Quadro GV100 (32 GB HBM2 VRAM)** | High-throughput batch inference, 50-epoch deep training (batch size 16 at 1024x1024 px) |
+| **CPU Platform** | **Intel Xeon (Family 6 Model 85, 16 Cores / 32 Threads)** | Multi-threaded extraction, dataset formatting, and multi-thread ONNX proxy benchmarking |
+| **System Memory** | **64 GB DDR4 ECC RAM** | In-memory dataset caching, difference hash matrix computing |
+| **Storage Architecture** | **High-Speed NVMe / Local Drive `D:`** | Fast random I/O for 150,000 raw + 90,000 augmented space images |
+| **Operating System** | **Windows 10/11 Pro (AMD64)** | Native PowerShell 5.1 / 7+ and CMD terminal execution |
+| **Python Environment** | **Python 3.11.9 (CUDA 12.x / PyTorch 2.x cuDNN)** | Core runtime for Ultralytics YOLOv8, Albumentations, Skyfield, OpenCV |
 
 ---
 
-## Master Ordinal Pipeline Overview
+## 2. End-to-End Master Pipeline (Mermaid)
 
 ```mermaid
 flowchart TD
-    subgraph STAGE_0["Stage 0: Phase 1 Results Baseline"]
-        S0_1["0.1 ML Lead: Archive Phase 1 SwissCube Results"]
-        S0_1 --> S0_2["0.2 ML Lead: Document Phase 1 Metrics as Baseline"]
+    subgraph STAGE_1["Stage 1: Archive Extraction & Ground-Truth Ingestion"]
+        S1_1["1.1 Verify ZIP Archives in data/raw/SPARK-2021/"]
+        S1_1 --> S1_2["1.2 Run scripts/extract_spark2021.py"]
+        S1_2 --> S1_3["1.3 Verify 90k train, 30k val, 30k test images extracted"]
     end
 
-    subgraph STAGE_1["Stage 1: SPARK2021 Dataset Extraction & Ingestion"]
-        S1_1["1.1 Data Lead: Extract ZIP Archives"] --> S1_2["1.2 Data Lead: Audit SPARK2021 CSVs & Debris Verification"]
-        S1_2 --> S1_3["1.3 Data Lead: Convert CSV → YOLO Labels (BBox Swap)"]
-        S1_3 --> S1_4["1.4 Data Lead: Verify YOLO Directory Structure"]
+    subgraph STAGE_2["Stage 2: Annotation Audit & Debris Ground-Truth Verification"]
+        S2_1["2.1 Run scripts/audit_spark2021_annotations.py"]
+        S2_1 --> S2_2["2.2 Audit all 150,000 CSV rows across train/val/test"]
+        S2_2 --> S2_3["2.3 Verify 25,000 confirmed Debris annotations (DEC-10)"]
     end
 
-    subgraph STAGE_2["Stage 2: Data Augmentation Pipeline"]
-        S2_1["2.1 Data Lead: Augmentation Preview Grid"] --> S2_2["2.2 Data Lead: Generate Photometric Copies"]
-        S2_2 --> S2_3["2.3 Data Lead: Sync Processed Data to GV100"]
+    subgraph STAGE_3["Stage 3: Coordinate Conversion & YOLO Directory Structuring"]
+        S3_1["3.1 Run scripts/convert_spark2021_to_yolo.py"]
+        S3_1 --> S3_2["3.2 Perform row/col to YOLO coordinate swap"]
+        S3_2 --> S3_3["3.3 Collision-free naming: {class}_{image_stem}"]
+        S3_3 --> S3_4["3.4 Link/populate data/processed/spark2021/"]
     end
 
-    subgraph STAGE_3["Stage 3: Full Production Training (11-Class)"]
-        S3_1["3.1 ML Lead: Launch SPARK2021 Training on GV100"] --> S3_2["3.2 ML Lead: Monitor Metrics & Loss Curves"]
+    subgraph STAGE_4["Stage 4: Space-Domain Photometric Augmentation"]
+        S4_1["4.1 Run preview sanity check (--preview-only)"]
+        S4_1 --> S4_2["4.2 Run src/data/augment.py on train/ only (--copies 1)"]
+        S4_2 --> S4_3["4.3 Expand train set to 180,000 images (90k raw + 90k aug1_*)"]
+        S4_3 --> S4_4["4.4 Enforce strict split isolation: 0 augmented images in val/test"]
     end
 
-    subgraph STAGE_4["Stage 4: Comprehensive Evaluation"]
-        S4_1["4.1 ML Lead: Evaluate on Val Split"] --> S4_2["4.2 ML Lead: Evaluate on Test Split"]
-        S4_2 --> S4_3["4.3 ML Lead: Per-Class Debris Analysis"]
+    subgraph STAGE_5["Stage 5: Split Leakage Audit & Hash Verification"]
+        S5_1["5.1 Run scripts/check_split_leakage.py (64-bit dHash)"]
+        S5_1 --> S5_2["5.2 Audit 550 test vs 5,000 train samples"]
+        S5_2 --> S5_3["5.3 Document black-space background hash collapse"]
+        S5_3 --> S5_4["5.4 Formally record: split leakage not ruled out"]
     end
 
-    subgraph STAGE_5["Stage 5: Edge Optimization & Deployment"]
-        S5_1["5.1 ML Lead: Export to ONNX & NCNN"] --> S5_2["5.2 Data Lead: Edge Latency Benchmark"]
-        S5_2 --> S5_3["5.3 Data Lead: Compare Against Latency Budget"]
+    subgraph STAGE_6["Stage 6: 50-Epoch Production Training on GV100"]
+        S6_1["6.1 Launch src/train.py (1024px, batch 16, 50 epochs)"]
+        S6_1 --> S6_2["6.2 Checkpoint every 5 epochs; close mosaic at epoch 40"]
+        S6_2 --> S6_3["6.3 Export weights/best.pt and last.pt"]
     end
 
-    STAGE_0 --> STAGE_1
+    subgraph STAGE_7["Stage 7: Multi-Scale Pareto Evaluation & Edge Benchmarks"]
+        S7_1["7.1 Evaluate 30k test split at 640px, 800px, and 1024px"]
+        S7_1 --> S7_2["7.2 Extract confusion matrix and per-class metrics"]
+        S7_2 --> S7_3["7.3 Benchmark ONNX on 16-Core Xeon CPU (640, 800, 1024px)"]
+        S7_3 --> S7_4["7.4 Export best.onnx & best_ncnn_model/ for Pi deployment"]
+    end
+
     STAGE_1 --> STAGE_2
     STAGE_2 --> STAGE_3
     STAGE_3 --> STAGE_4
     STAGE_4 --> STAGE_5
+    STAGE_5 --> STAGE_6
+    STAGE_6 --> STAGE_7
 ```
 
 ---
 
-## Stage 0: Phase 1 Baseline Archival
+## 3. Detailed Execution Stages (GV100 Terminal Protocols)
 
-### Step 0.1: Archive Phase 1 SwissCube Results
-- **Assigned Role**: **ML Lead**
-- **Machine**: Any
-- **Action**: Ensure Phase 1 artifacts are preserved for comparison:
-  - `experiments/week1_smoke_test/weights/best.pt` and `last.pt`
-  - `docs/Phase_1_Comprehensive_Engineering_Report.pdf`
-  - `edge_benchmark.json`
-  - `docs/spark_class_audit.json`
-- **Exit Criteria**:
-  - Phase 1 experiment directory intact under `experiments/week1_smoke_test/`.
-  - All evaluation JSONs archived under `outputs/evaluations/`.
+### STAGE 1: Archive Extraction & Ground-Truth Ingestion
 
-### Step 0.2: Document Phase 1 Baseline Metrics
-- **Assigned Role**: **ML Lead**
-- **Action**: Record Phase 1 metrics for regression comparison:
-  - **Phase 1 Dataset**: SwissCube (single-class, 17,289 train / 3,242 val images)
-  - **mAP@0.5**: `0.9903` (5 epochs, 1024px)
-  - **mAP@0.5:0.95**: `0.9211`
-  - **Edge Latency**: ONNX 4-thread = `85.94 ms` mean (i5 CPU proxy)
-  - **Limitation**: Zero debris detection capability — strictly satellite-only.
+**Objective:** Safely unpack the compressed SPARK-2021 raw archives without corrupting folder hierarchies or consuming redundant disk storage.
 
----
+- **Working Directory:** `D:\SharanyaTIlak_Spoorthy_Indu\space-debris-detection-system`
+- **Raw Data Directory:** `data\raw\SPARK-2021`
+- **Archives Required:**
+  - `train_rgb.zip` (~4.8 GB, contains 90,000 training images nested by class)
+  - `validate_rgb.zip` (~1.5 GB, contains 30,000 validation images nested by class)
+  - `test_rgb.zip` (~1.6 GB, contains 30,000 test images nested by class)
+  - `train_labels.csv`, `validate_labels.csv`, `test_labels.csv`
 
-## Stage 1: SPARK2021 Dataset Extraction & Ingestion
+#### Command Execution (GV100 Workstation):
+```powershell
+# Navigate to repository root
+cd D:\SharanyaTIlak_Spoorthy_Indu\space-debris-detection-system
 
-### Step 1.1: Extract SPARK2021 ZIP Archives
-- **Assigned Role**: **Data & Edge Lead**
-- **Machine**: Machine with sufficient disk space (~20 GB for extracted images)
-- **Prerequisite**: SPARK2021 downloaded to `data/raw/SPARK2021/` containing:
-  - `train_rgb.zip` (~4.8 GB), `train_labels.csv` (90,000 rows)
-  - `validate_rgb.zip` (~1.5 GB), `validate_labels.csv` (30,000 rows)
-  - `test_rgb.zip` (~1.6 GB), `test_labels.csv` (30,000 rows)
-  - *(Optional)* `train_depth.zip`, `validate_depth.zip`, `test_depth.zip`
-- **Commands**:
-  ```powershell
-  # Extract RGB images (depth extraction is optional — not needed for YOLO training)
-  Expand-Archive -Path data/raw/SPARK2021/train_rgb.zip -DestinationPath data/raw/SPARK2021/train_rgb/ -Force
-  Expand-Archive -Path data/raw/SPARK2021/validate_rgb.zip -DestinationPath data/raw/SPARK2021/validate_rgb/ -Force
-  Expand-Archive -Path data/raw/SPARK2021/test_rgb.zip -DestinationPath data/raw/SPARK2021/test_rgb/ -Force
-  ```
-- **Exit Criteria**:
-  - `data/raw/SPARK2021/train_rgb/` contains ~90,000 PNG images.
-  - `data/raw/SPARK2021/validate_rgb/` contains ~30,000 PNG images.
-  - `data/raw/SPARK2021/test_rgb/` contains ~30,000 PNG images.
+# Verify raw files exist
+Get-ChildItem -Path "data\raw\SPARK-2021"
 
-### Step 1.2: Audit SPARK2021 Annotations & Verify Debris Class
-- **Assigned Role**: **Data & Edge Lead**
-- **Machine**: Any
-- **Command**:
-  ```powershell
-  python scripts/audit_spark2021_annotations.py --spark-dir data/raw/SPARK2021
-  ```
-  *(Note: A new audit script adapted for SPARK2021's CSV schema — columns: `class, id, image, depth, bbox, illumination` for train/validate; `id, image, depth, class, bbox` for test.)*
-- **Exit Criteria**:
-  - Terminal displays class frequency table across all 11 classes.
-  - **Confirms Debris class IS present** (supersedes DEC-04 / Branch B from Phase 1).
-  - Expected distribution: ~12,500 images per satellite class, ~25,000 for Debris (across 5 sub-models).
-  - Output saved to `docs/spark2021_class_audit.json`.
+# Run automated extraction utility with auto-detection and progress logging every 5,000 files
+python scripts/extract_spark2021.py --spark-dir data/raw/SPARK-2021 --split all
+```
 
-### Step 1.3: Convert SPARK2021 CSV Annotations → YOLO Format
-- **Assigned Role**: **Data & Edge Lead**
-- **Machine**: Any
-- **Prerequisite**: Step 1.1 (extraction) and Step 1.2 (audit) complete.
-- **Command**:
-  ```powershell
-  python scripts/convert_spark2021_to_yolo.py `
-    --spark-dir data/raw/SPARK2021 `
-    --out data/processed/spark2021 `
-    --imgsz 1024
-  ```
-- **Critical Implementation Notes**:
-  - **BBox Convention Swap**: SPARK2021 uses row/column ordering `[R_min, C_min, R_max, C_max]` which equals `[y_min, x_min, y_max, x_max]`. The conversion script MUST swap to YOLO's `<x_center> <y_center> <width> <height>` (normalized 0.0–1.0):
-    ```python
-    r_min, c_min, r_max, c_max = bbox   # SPARK2021 convention
-    # YOLO normalized (cx, cy, w, h) for image of size (H, W)
-    cx = ((c_min + c_max) / 2) / W
-    cy = ((r_min + r_max) / 2) / H
-    w  = (c_max - c_min) / W
-    h  = (r_max - r_min) / H
-    ```
-  - **Class ID Mapping** (alphabetical by SPARK2021 convention):
-    ```
-    0: AcrimSat    (Satellite)
-    1: Aquarius    (Satellite)
-    2: Aura        (Satellite)
-    3: Calipso     (Satellite)
-    4: Cloudsat    (Satellite)
-    5: CubeSat     (Satellite)
-    6: Debris      (Debris — 5 sub-models merged)
-    7: Jason       (Satellite)
-    8: Sentinel-6  (Satellite)
-    9: Terra       (Satellite)
-   10: TRMM        (Satellite)
-    ```
-  - SPARK2021 already provides train/validate/test splits. Use them as-is (do NOT re-split).
-- **Exit Criteria**:
-  - `data/processed/spark2021/` created with structure:
-    ```text
-    data/processed/spark2021/
-    ├── images/
-    │   ├── train/      (~90,000 images)
-    │   ├── val/        (~30,000 images — renamed from "validate")
-    │   └── test/       (~30,000 images)
-    └── labels/
-        ├── train/
-        ├── val/
-        └── test/
-    ```
-  - Label text files have format: `<class_id> <x_center> <y_center> <width> <height>` (normalized 0.0–1.0).
-  - Spot-check: visually verify ≥5 random images with overlaid bounding boxes to confirm coordinate accuracy after the row/column swap.
-
-### Step 1.4: Verify SPARK2021 YOLO Configuration
-- **Assigned Role**: **Data & Edge Lead**
-- **File**: `configs/spark2021.yaml`
-- **Verification**: Create and verify `configs/spark2021.yaml`:
-  ```yaml
-  # SPARK2021 11-Class Dataset Configuration (Satellites + Debris)
-  path: ./data/processed/spark2021
-  train: images/train
-  val: images/val
-  test: images/test
-
-  names:
-    0: AcrimSat
-    1: Aquarius
-    2: Aura
-    3: Calipso
-    4: Cloudsat
-    5: CubeSat
-    6: Debris
-    7: Jason
-    8: Sentinel-6
-    9: Terra
-    10: TRMM
-  ```
-- **Exit Criteria**:
-  - `configs/spark2021.yaml` exists with correct paths and all 11 class names.
-  - Running `yolo val model=yolov8n.pt data=configs/spark2021.yaml` does not raise path-resolution errors (images found, even if untrained model yields near-zero mAP).
+#### Exit Verification Gate:
+```powershell
+# Verify image counts
+(Get-ChildItem -Path "data\raw\SPARK-2021\train_rgb" -Recurse -Filter "*.jpg").Count    # Must be 90,000
+(Get-ChildItem -Path "data\raw\SPARK-2021\validate_rgb" -Recurse -Filter "*.jpg").Count # Must be 30,000
+(Get-ChildItem -Path "data\raw\SPARK-2021\test_rgb" -Recurse -Filter "*.jpg").Count     # Must be 30,000
+```
+- **Pass Criteria:** Exactly 150,000 raw image files unpacked across `train_rgb`, `validate_rgb`, and `test_rgb`.
 
 ---
 
-## Stage 2: Photometric Augmentation Pipeline
+### STAGE 2: Annotation Audit & Debris Verification
 
-### Step 2.1: Generate Augmentation Sanity Check (Preview Only)
-- **Assigned Role**: **Data & Edge Lead**
-- **Machine**: Laptop or Workstation
-- **Command**:
-  ```powershell
-  python src/data/augment.py --data data/processed/spark2021 --preview-only
-  ```
-- **Exit Criteria**:
-  - Generates preview grid image showing original vs. augmented samples (blur, noise, exposure jitter).
-  - Inspect visually: ensure Debris class objects (often small, low-contrast fragments) remain visible after augmentation.
-  - Bounding box validity is preserved (photometric-only transforms don't alter coordinates).
+**Objective:** Inspect all 150,000 annotation rows to confirm the presence of 25,000 ground-truth debris annotations, validate bounding box ranges, and establish the 11-class taxonomy contract.
 
-### Step 2.2: Generate Offline Training Augmentations (Optional or via train.py)
-- **Assigned Role**: **Data & Edge Lead**
-- **Command**:
-  ```powershell
-  python src/data/augment.py --data data/processed/spark2021 --copies 1
-  ```
-  *(Note: Alternatively, `src/train.py` will auto-run this if `--augment-copies 1` is passed).*
-- **Exit Criteria**:
-  - `data/processed/spark2021/images/train/` contains `aug1_*` images with corresponding label duplicates in `labels/train/`.
-  - **Important**: With ~90k training images, offline augmentation will require significant disk space. Consider using `--augment-copies 0` and relying on YOLOv8's on-the-fly augmentations for Phase 2 to save time/disk.
+#### Command Execution (GV100 Workstation):
+```powershell
+python scripts/audit_spark2021_annotations.py `
+  --spark-dir data/raw/SPARK-2021 `
+  --out docs/spark2021_class_audit.json
+```
 
-### Step 2.3: Data Sync to Workstation
-- **Assigned Role**: **Data & Edge Lead**
-- **Action**: Since `data/` is in `.gitignore`, transfer `data/processed/spark2021` directly to the workstation drive:
-  `D:\SPACE_DEBRIS\space-debris-detection-system\data\processed\spark2021`.
+#### Expected Terminal Output:
+```text
+======================================================================
+  RUNNING SPARK-2021 ANNOTATION AUDIT (DEC-10 VERIFICATION)
+  Root: data/raw/SPARK-2021
+======================================================================
+[OK] Train CSV: 90,000 rows (75,000 Satellites, 15,000 Debris)
+[OK] Val CSV:   30,000 rows (25,000 Satellites,  5,000 Debris)
+[OK] Test CSV:  30,000 rows (25,000 Satellites,  5,000 Debris)
+----------------------------------------------------------------------
+TOTAL AUDITED:  150,000 rows
+DEBRIS TOTAL:   25,000 instances (16.67% of dataset)
+SATELLITES:     125,000 instances (12,500 per class across 10 classes)
+INVALID BOXES:  0 invalid bounding boxes detected
+----------------------------------------------------------------------
+[OK] Audit record written to docs/spark2021_class_audit.json
+[OK] Persistent archive saved to outputs/audits/latest_spark2021.json
+```
 
----
-
-## Stage 3: Full Production Model Training (SPARK2021 11-Class)
-
-### Step 3.1: Launch GPU Training on GV100
-- **Assigned Role**: **ML Lead**
-- **Machine**: Workstation (NVIDIA Quadro GV100, 32 GB VRAM)
-- **Prerequisite**: `data/processed/spark2021` present; `configs/spark2021.yaml` verified.
-- **Command**:
-  ```powershell
-  python src/train.py `
-    --epochs 50 `
-    --imgsz 1024 `
-    --batch 16 `
-    --augment-copies 0 `
-    --name spark2021_yolov8n_50e `
-    --data-config configs/spark2021.yaml `
-    --device 0
-  ```
-- **Training Considerations for SPARK2021**:
-  - **Dataset Size**: ~90k training images (vs ~60k in old SPARK). Training time will increase proportionally (~1.5x per epoch). Budget ~12–15 hours for 50 epochs at batch 16, 1024px on GV100.
-  - **Class Imbalance**: Debris has ~25k images vs ~12.5k per satellite class. Consider adding `--cls-weight` or focal loss configuration in a follow-up run if Debris recall is low.
-  - **On-the-fly Augmentations**: `--augment-copies 0` recommended here — rely on YOLOv8's built-in space-domain augmentations (rotation, flip, HSV jitter, erasing) configured in `train.py`.
-
-### Step 3.2: Monitor Convergence & Archival
-- **Assigned Role**: **ML Lead**
-- **Exit Criteria**:
-  - Training completes all 50 epochs without CUDA OOM (GV100 32 GB easily fits batch 16 at 1024x1024).
-  - Weights saved: `experiments/spark2021_yolov8n_50e/weights/best.pt` and `last.pt`.
-  - Archival log updated: `outputs/training/latest.json`.
-  - **Key metrics to watch**: Per-class AP for `Debris` — this is the primary new capability over Phase 1.
+- **Pass Criteria:** `docs/spark2021_class_audit.json` exists, zero invalid bounding boxes, and exactly 25,000 confirmed debris annotations across 5 geometric debris types.
 
 ---
 
-## Stage 4: Comprehensive Model Evaluation (EVAL-02 Schema)
+### STAGE 3: Coordinate Conversion & YOLO Directory Structuring
 
-### Step 4.1: Validation Split Evaluation
-- **Assigned Role**: **ML Lead**
-- **Machine**: Workstation (Quadro GV100)
-- **Command**:
-  ```powershell
-  python src/eval.py `
-    --weights experiments/spark2021_yolov8n_50e/weights/best.pt `
-    --data configs/spark2021.yaml `
-    --split val `
-    --imgsz 1024 `
-    --batch 16 `
-    --device 0 `
-    --out-json outputs/evaluations/spark2021_val_metrics.json
-  ```
+**Objective:** Transform SPARK-2021 row/column format `[R_min, C_min, R_max, C_max] == [y_min, x_min, y_max, x_max]` into normalized YOLO center coordinates `<class_id> <cx> <cy> <w> <h>`, flatten per-class subdirectories using collision-free naming (`{class}_{stem}.jpg`), and link into standard Ultralytics directory layout.
 
-### Step 4.2: Hold-Out Test Split Evaluation (Final Benchmark)
-- **Assigned Role**: **ML Lead**
-- **Machine**: Workstation (Quadro GV100)
-- **Command**:
-  ```powershell
-  python src/eval.py `
-    --weights experiments/spark2021_yolov8n_50e/weights/best.pt `
-    --data configs/spark2021.yaml `
-    --split test `
-    --imgsz 1024 `
-    --batch 16 `
-    --device 0 `
-    --out-json outputs/evaluations/spark2021_test_metrics.json
-  ```
-- **Exit Criteria**:
-  - Target metrics logged:
-    - Overall mAP@50 $\ge 80\%$
-    - Overall mAP@50-95 $\ge 55\%$
-    - **Debris class AP@50 $\ge 70\%$** (critical: this validates the dataset transition rationale)
-    - Class-by-class breakdown saved in `outputs/evaluations/spark2021_test_metrics.json`.
+#### Bounding Box Mathematical Formulation:
+$$\text{cx} = \frac{C_{\min} + C_{\max}}{2 \cdot W}, \quad \text{cy} = \frac{R_{\min} + R_{\max}}{2 \cdot H}$$
+$$w = \frac{C_{\max} - C_{\min}}{W}, \quad h = \frac{R_{\max} - R_{\min}}{H}$$
 
-### Step 4.3: Debris-Focused Analysis
-- **Assigned Role**: **ML Lead**
-- **Action**: Extract and document Debris-specific metrics from eval results:
-  - Debris Precision, Recall, AP@50, AP@50-95
-  - Confusion matrix: Debris ↔ satellite misclassification rate (aligned with SPARK2021 ICIP challenge Task 1 severity weighting)
-  - Compare overall mAP against Phase 1 baseline (single-class SwissCube: mAP@50 = 0.9903) — expect lower mAP due to 11-class complexity and debris difficulty.
-- **Exit Criteria**:
-  - Debris-specific metrics documented in `outputs/evaluations/spark2021_debris_analysis.json`.
-  - Written comparison against Phase 1 baseline metrics archived.
+#### Class Mapping Contract [0..10]:
+`0: AcrimSat`, `1: Aquarius`, `2: Aura`, `3: Calipso`, `4: Cloudsat`, `5: CubeSat`, `6: Debris`, `7: Jason`, `8: Sentinel-6`, `9: Terra`, `10: TRMM`.
 
----
+#### Command Execution (GV100 Workstation):
+```powershell
+# Using hardlinks on Windows NTFS to save ~10 GB disk space and finish in seconds
+python scripts/convert_spark2021_to_yolo.py `
+  --spark-dir data/raw/SPARK-2021 `
+  --out data/processed/spark2021 `
+  --link-mode hardlink `
+  --verify-samples 10
+```
+*(Note: If hardlink encounters NTFS permission or cross-drive limitations, switch `--link-mode copy`).*
 
-## Stage 5: Edge Optimization & Real-Time Benchmarking
+#### Dataset Configuration Contract (`configs/spark2021.yaml`):
+Verify that `configs/spark2021.yaml` reflects the processed directory:
+```yaml
+path: ./data/processed/spark2021
+train: images/train
+val: images/val
+test: images/test
 
-### Step 5.1: Multi-Format Model Export
-- **Assigned Role**: **ML Lead**
-- **Machine**: Workstation
-- **Commands**:
-  ```powershell
-  # 1. Export ONNX (FP32, simplified graph)
-  yolo export model=experiments/spark2021_yolov8n_50e/weights/best.pt format=onnx imgsz=1024 simplify=True
+names:
+  0: AcrimSat
+  1: Aquarius
+  2: Aura
+  3: Calipso
+  4: Cloudsat
+  5: CubeSat
+  6: Debris
+  7: Jason
+  8: Sentinel-6
+  9: Terra
+  10: TRMM
+```
 
-  # 2. Export NCNN for ARM CPU / Raspberry Pi acceleration
-  yolo export model=experiments/spark2021_yolov8n_50e/weights/best.pt format=ncnn imgsz=1024
-  ```
-- **Exit Criteria**:
-  - `experiments/spark2021_yolov8n_50e/weights/best.onnx` generated.
-  - `experiments/spark2021_yolov8n_50e/weights/best_ncnn_model/` generated (`model.bin`, `model.param`).
-  - **Note**: The 11-class output head is slightly larger than Phase 1's 1-class or 10-class heads. Model size increase should be negligible (<100 KB).
-
-### Step 5.2: Edge Hardware Latency & RSS Benchmark
-- **Assigned Role**: **Data & Edge Lead**
-- **Machine**: Local Laptop / Raspberry Pi Testbed
-- **Prerequisite**: Copy exported ONNX and NCNN weights to edge testbed.
-- **Commands**:
-  ```powershell
-  # Verify testbed environment first
-  python edge/verify_pi_env.py
-
-  # Benchmark ONNX model (10 warmup, 100 timed runs, 4 CPU threads)
-  python edge/benchmark.py `
-    --model experiments/spark2021_yolov8n_50e/weights/best.onnx `
-    --imgsz 1024 `
-    --device cpu `
-    --threads 4 `
-    --runs 100 `
-    --warmup 10 `
-    --out-json outputs/benchmarks/spark2021_onnx_benchmark.json
-  ```
-- **Exit Criteria**:
-  - Target latency budget: $\le 100\text{ ms}$ (throughput $\ge 10\text{ FPS}$).
-  - Peak memory footprint: $\le 512\text{ MB RAM}$.
-  - Results archived to `outputs/benchmarks/spark2021_onnx_benchmark.json`.
-  - **Comparison**: Latency should be comparable to Phase 1 (85.94 ms ONNX 4-thread on i5) since model architecture is identical (YOLOv8n); only the classification head changes from 10→11 classes.
+#### Exit Verification Gate:
+```powershell
+(Get-ChildItem -Path "data\processed\spark2021\images\train" -Filter "*.jpg").Count  # Must be 90,000
+(Get-ChildItem -Path "data\processed\spark2021\labels\train" -Filter "*.txt").Count  # Must be 90,000
+(Get-ChildItem -Path "data\processed\spark2021\images\val" -Filter "*.jpg").Count    # Must be 30,000
+(Get-ChildItem -Path "data\processed\spark2021\labels\val" -Filter "*.txt").Count    # Must be 30,000
+(Get-ChildItem -Path "data\processed\spark2021\images\test" -Filter "*.jpg").Count   # Must be 30,000
+(Get-ChildItem -Path "data\processed\spark2021\labels\test" -Filter "*.txt").Count   # Must be 30,000
+```
+- **Pass Criteria:** Exactly 150,000 images and 150,000 corresponding label `.txt` files properly distributed across train, val, and test.
 
 ---
 
-## Quick Reference Summary Table
+### STAGE 4: Space-Domain Photometric Augmentation
 
-| Step | Script / Tool | Primary Role | Hardware Target | Expected Output Artifact |
-|---|---|---|---|---|
-| **0.1** | Manual archival | ML Lead | Any | Phase 1 artifacts preserved |
-| **0.2** | Documentation | ML Lead | Any | Phase 1 baseline metrics recorded |
-| **1.1** | `Expand-Archive` | Data Lead | Any | Extracted RGB images (~150k) |
-| **1.2** | `scripts/audit_spark2021_annotations.py` | Data Lead | Any | `docs/spark2021_class_audit.json` |
-| **1.3** | `scripts/convert_spark2021_to_yolo.py` | Data Lead | Any | `data/processed/spark2021/{images,labels}` |
-| **1.4** | Manual verification | Data Lead | Any | `configs/spark2021.yaml` |
-| **2.1** | `src/data/augment.py` | Data Lead | Any | Preview grid check |
-| **2.2** | `src/data/augment.py` | Data Lead | Any | Augmented training images |
-| **2.3** | Manual sync | Data Lead | Any | Data on GV100 |
-| **3.1** | `src/train.py` | ML Lead | Quadro GV100 | `experiments/spark2021_yolov8n_50e/weights/best.pt` |
-| **3.2** | Monitoring | ML Lead | Quadro GV100 | `outputs/training/latest.json` |
-| **4.1** | `src/eval.py` | ML Lead | Quadro GV100 | `outputs/evaluations/spark2021_val_metrics.json` |
-| **4.2** | `src/eval.py` | ML Lead | Quadro GV100 | `outputs/evaluations/spark2021_test_metrics.json` |
-| **4.3** | Analysis | ML Lead | Any | `outputs/evaluations/spark2021_debris_analysis.json` |
-| **5.1** | `yolo export` | ML Lead | Quadro GV100 | `best.onnx` and `best_ncnn_model/` |
-| **5.2** | `edge/benchmark.py` | Data Lead | Edge / Laptop | `outputs/benchmarks/spark2021_onnx_benchmark.json` |
+**Objective:** Inject space-domain perturbations (solar flare exposure jitter, orbital motion blur, and Gaussian sensor read noise) **exclusively into the training set**, doubling the training corpus to 180,000 images while maintaining strict isolation of validation and test splits.
+
+#### Step 4.1: Visual Preview Sanity Check
+```powershell
+python src/data/augment.py --data data/processed/spark2021 --preview-only
+```
+- Inspect the generated preview image (`preview_grid.jpg` or displayed window): verify that small CubeSat and Debris fragments remain identifiable under sensor noise and contrast changes.
+
+#### Step 4.2: Generate Offline Training Augmentation
+```powershell
+python src/data/augment.py `
+  --data data/processed/spark2021 `
+  --copies 1 `
+  --seed 42
+```
+- The script iterates across all 90,000 raw training images, applying:
+  - Exposure & Contrast Jitter: $\alpha \in [0.7, 1.3]$
+  - Optical Defocus Blur: Gaussian kernel with $\sigma \in [0.0, 2.0]$
+  - Space Camera Sensor Noise: Gaussian read noise with $\sigma \in [2.0, 12.0]$
+- Copies identical bounding box text files as `aug1_{filename}.txt` without modifying bounding box coordinates (photometric transforms preserve 2D geometry).
+
+#### Exit Verification Gate:
+```powershell
+# Verify training set doubled to 180,000 images
+(Get-ChildItem -Path "data\processed\spark2021\images\train" -Filter "*.jpg").Count  # Exactly 180,000
+(Get-ChildItem -Path "data\processed\spark2021\labels\train" -Filter "*.txt").Count  # Exactly 180,000
+
+# Verify strict isolation gate on validation and test splits (must be zero aug1_* files!)
+(Get-ChildItem -Path "data\processed\spark2021\images\val" -Filter "aug1_*").Count    # MUST BE 0
+(Get-ChildItem -Path "data\processed\spark2021\images\test" -Filter "aug1_*").Count   # MUST BE 0
+```
+- **Pass Criteria:** Training set contains exactly 180,000 images (90k raw + 90k `aug1_*`), while validation (30k) and test (30k) remain unpolluted.
 
 ---
 
-## Appendix: Phase 1 Results Summary (SwissCube / Old SPARK Baseline)
+### STAGE 5: Train/Test Split Leakage Audit
 
-Preserved for regression comparison. Phase 1 used the original SPARK dataset (10 spacecraft classes, zero debris) and SwissCube (single satellite class).
+**Objective:** Audit potential perceptual leakage between the 180,000 training images and 30,000 held-out test images using 64-bit difference hashing (dHash), document the black-space background hash collapse phenomenon, and record an honest leakage assessment.
 
-| Metric | Phase 1 Value | Notes |
-|---|---|---|
-| **Dataset** | SwissCube (17,289 train, 3,242 val) | Single-class satellite detection |
-| **mAP@0.5** | 0.9903 | 5 epochs, 1024px, YOLOv8n |
-| **mAP@0.5:0.95** | 0.9211 | |
-| **Precision** | 0.974 | |
-| **Recall** | 0.962 | |
-| **ONNX Latency (4-thread, i5 CPU)** | 85.94 ms mean, 97.62 ms p95 | 11.6 FPS |
-| **NCNN Latency (4-thread)** | 165.21 ms mean, 178.48 ms p95 | 6.1 FPS (from earlier benchmark) |
-| **Debris Detection** | ❌ Not possible | Old SPARK had 0 debris annotations |
+#### Command Execution (GV100 Workstation):
+```powershell
+python scripts/check_split_leakage.py `
+  --train-dir data/processed/spark2021/images/train `
+  --test-dir data/processed/spark2021/images/test `
+  --train-samples 5000 `
+  --test-samples 550 `
+  --threshold 3 `
+  --workers 8 `
+  --out outputs/audits/split_leakage_audit.json
+```
 
-### Key Phase 1 Findings (DEC-04)
-- Row-by-row audit of old SPARK confirmed **zero debris rows** in all 80,000 annotations.
-- The original SPARK was a pure 10-class spacecraft recognition dataset (Cheops, LisaPathfinder, Proba2, etc.).
-- This forced adoption of "Branch B" — qualitative-only debris coverage.
-- **Resolution**: SPARK2021 directly resolves this gap by including a consolidated Debris class with ~25,000 annotated images across 5 debris sub-models.
+#### Scientific Finding & Mandatory Disclosure:
+1. **Background Hash Collapse:** In space imagery, $>95\%$ of image pixels consist of pure black space ($\text{RGB} = [0, 0, 0]$). An $8 \times 8$ thumbnail collapses small satellites ($<50 \times 50$ px) into flat zero-gradients, producing Hamming distance 0 across completely different classes (e.g., `Terra` matching `AcrimSat`).
+2. **Status:** Global thumbnail hashing is ineffective for space images. Consequently, **split leakage has NOT been ruled out**. Trajectory-level sequence splitting and bounding-box cropped ROI hashing are documented as requirements for future dataset releases.
 
-### Superclass Taxonomy Update
+---
 
-| Our Superclass | Old SPARK (Phase 1) | SPARK2021 (Phase 2+) |
-|---|---|---|
-| `satellite` | ✅ All 10 classes → superclass | ✅ 10 satellite classes available |
-| `debris` | ❌ Absent | ✅ `Debris` class (5 sub-models merged) |
-| `rocket_body` | ❌ Absent | ❌ Still absent — defer to stretch goal |
+### STAGE 6: Full Production 50-Epoch Deep Training on Quadro GV100
+
+**Objective:** Execute the complete 50-epoch deep training run of YOLOv8-Nano on the 180,000-image SPARK-2021 dataset at native $1024 \times 1024$ resolution.
+
+#### Workstation Training Configuration:
+- **Architecture:** YOLOv8-Nano (`yolov8n.pt`, 3.01M parameters)
+- **Input Resolution:** $1024 \times 1024$ px
+- **Batch Size:** 16 (optimized for 32 GB VRAM on Quadro GV100)
+- **Total Training Images:** 180,000
+- **Batches per Epoch:** $\frac{180,000}{16} = 11,250$ batches
+- **Total Iterations:** $11,250 \times 50 = 562,500$ batches
+- **Mosaic Augmentation Closure:** Closes at epoch 40 (batch 450,000, `train_batch450000.jpg`)
+- **Measured Duration:** 122,183 seconds (~33.94 hours, averaging 2,443.7 seconds / ~40.7 minutes per epoch)
+- **Optimizer:** SGD (lr0=0.01, momentum=0.937, weight_decay=0.0005)
+- **Active Online Transforms:** Degrees 180.0 ($360^\circ$ rotation invariance), flipud 0.5, fliplr 0.5, HSV jitter, random erasing 0.4.
+
+#### Command Execution (GV100 Workstation):
+```powershell
+python src/train.py `
+  --epochs 50 `
+  --imgsz 1024 `
+  --batch 16 `
+  --data-config configs/spark2021.yaml `
+  --name spark2021_yolov8n_50e `
+  --save-period 5 `
+  --device 0
+```
+
+#### Exit Verification Gate:
+- Convergence reached without CUDA OOM errors.
+- Checkpoints saved: `experiments/spark2021_yolov8n_50e/weights/epoch5.pt`, ..., `epoch50.pt`, `last.pt`, `best.pt`.
+- Results logged in `experiments/spark2021_yolov8n_50e/results.csv`.
+
+---
+
+### STAGE 7: Multi-Scale Pareto Evaluation & Edge Benchmarks
+
+**Objective:** Evaluate the converged model checkpoint (`best.pt`) on the frozen 30,000-image test set across multiple input resolutions (640px, 800px, 1024px), generate the normalized confusion matrix, and execute edge proxy latency benchmarks on the 16-Core Xeon CPU.
+
+#### Step 7.1: Multi-Scale Standalone Test Set Evaluations (Quadro GV100)
+```powershell
+# 1. Native 1024px Evaluation
+python src/eval.py `
+  --weights experiments/spark2021_yolov8n_50e/weights/best.pt `
+  --data configs/spark2021.yaml `
+  --split test `
+  --imgsz 1024 `
+  --device 0 `
+  --out outputs/evaluations/spark2021_test_1024.json
+
+# 2. Intermediate 800px Evaluation
+python src/eval.py `
+  --weights experiments/spark2021_yolov8n_50e/weights/best.pt `
+  --data configs/spark2021.yaml `
+  --split test `
+  --imgsz 800 `
+  --device 0 `
+  --out outputs/evaluations/spark2021_test_800.json
+
+# 3. Edge-Optimized 640px Evaluation
+python src/eval.py `
+  --weights experiments/spark2021_yolov8n_50e/weights/best.pt `
+  --data configs/spark2021.yaml `
+  --split test `
+  --imgsz 640 `
+  --device 0 `
+  --out outputs/evaluations/spark2021_test_640.json
+```
+
+#### Target Pareto Curve Benchmark Standards:
+| Resolution | Headline mAP@50-95 | Debris mAP@50-95 | GPU Inference Latency | Compute / FLOPs Profile |
+|---|:---:|:---:|:---:|---|
+| **1024 x 1024** | **86.98%** | **85.39%** | 3.57 ms (7.96 ms total) | Native training resolution |
+| **800 x 800** | **86.47%** | **84.31%** | 2.49 ms (5.32 ms total) | -0.51% mAP drop, 39% pixel reduction |
+| **640 x 640** | **85.06%** | **82.81%** | 2.18 ms (4.28 ms total) | **-1.92% mAP drop, 61% pixel reduction, 1.86x faster GPU pipeline** |
+
+---
+
+#### Step 7.2: Model Export to ONNX and NCNN Formats
+```powershell
+# 1. Export FP32 ONNX with graph simplification
+yolo export `
+  model=experiments/spark2021_yolov8n_50e/weights/best.pt `
+  format=onnx `
+  imgsz=1024 `
+  simplify=True
+
+# 2. Export ARM-optimized NCNN format for Raspberry Pi
+yolo export `
+  model=experiments/spark2021_yolov8n_50e/weights/best.pt `
+  format=ncnn `
+  imgsz=1024
+```
+- Generated artifacts:
+  - `experiments/spark2021_yolov8n_50e/weights/best.onnx` (13.04 MB)
+  - `experiments/spark2021_yolov8n_50e/weights/best_ncnn_model/` (`model.bin`, `model.param`)
+
+---
+
+#### Step 7.3: Single-Machine Workstation CPU Benchmarks (16-Core Xeon)
+Benchmark ONNX inference using `edge/benchmark.py` (10 discarded warmup passes, 100 timed iterations, 4 CPU threads) across all three resolutions to establish the compute scaling baseline:
+
+```powershell
+# 1. Benchmark 640px (Expected: ~23.7 ms, ~129 MB RAM, 42 FPS)
+python edge/benchmark.py `
+  --model experiments/spark2021_yolov8n_50e/weights/best.onnx `
+  --imgsz 640 `
+  --threads 4 `
+  --runs 100 `
+  --warmup 10 `
+  --out outputs/benchmarks/spark2021_onnx_640_benchmark.json
+
+# 2. Benchmark 800px (Completes the 3-point Pareto curve)
+python edge/benchmark.py `
+  --model experiments/spark2021_yolov8n_50e/weights/best.onnx `
+  --imgsz 800 `
+  --threads 4 `
+  --runs 100 `
+  --warmup 10 `
+  --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
+
+# 3. Benchmark 1024px (Expected: ~65.2 ms, ~207 MB RAM, 15 FPS)
+python edge/benchmark.py `
+  --model experiments/spark2021_yolov8n_50e/weights/best.onnx `
+  --imgsz 1024 `
+  --threads 4 `
+  --runs 100 `
+  --warmup 10 `
+  --out outputs/benchmarks/spark2021_onnx_1024_benchmark.json
+```
+
+#### Workstation CPU Baseline Summary (16-Core Xeon):
+- **640x640 (4 threads):** **23.70 ms mean**, 22.32 ms median, 28.70 ms p95, **42.2 FPS**, **129.34 MB RSS**.
+- **1024x1024 (4 threads):** **65.20 ms mean**, 64.33 ms median, 72.80 ms p95, **15.3 FPS**, **207.36 MB RSS**.
+- **Single-Machine Compute Scaling:** Scaling from 1024px down to 640px achieves an exact **$2.75\times$ speedup** and **37.6% memory reduction**, matching theoretical FLOPs scaling $(\frac{1024}{640})^2 = 2.56\times$.
+
+---
+
+## 4. Hardware Handoff: Deploying to Raspberry Pi 4 / Pi 5
+
+Once artifacts are generated on the GV100 workstation, package the edge deployment bundle for physical embedded verification:
+
+1. **Deployment Bundle Files:**
+   - `best.onnx` and `best_ncnn_model/`
+   - `edge/benchmark.py`
+   - `src/infer.py`
+   - `requirements-edge.txt`
+2. **Transfer to Raspberry Pi:**
+   ```bash
+   git clone https://github.com/Wall-E-30/space-debris-detection-system.git
+   cd space-debris-detection-system
+   git checkout dev
+   pip install onnxruntime psutil opencv-python-headless pyyaml
+   ```
+3. **Execute Physical Edge Latency Gate ($\le 1000\text{ ms}$):**
+   ```bash
+   # Run 640px benchmark on Pi 4 / Pi 5 (4 threads)
+   python edge/benchmark.py \
+     --model experiments/spark2021_yolov8n_50e/weights/best.onnx \
+     --imgsz 640 \
+     --threads 4 \
+     --runs 100 \
+     --warmup 10 \
+     --out outputs/benchmarks/pi_onnx_640_benchmark.json
+   ```
+
+---
+
+## 5. Workstation Fast Command Summary (Quick Copy-Paste)
+
+```powershell
+# 1. EXTRACT ARCHIVES
+python scripts/extract_spark2021.py --spark-dir data/raw/SPARK-2021 --split all
+
+# 2. AUDIT LABELS
+python scripts/audit_spark2021_annotations.py --spark-dir data/raw/SPARK-2021 --out docs/spark2021_class_audit.json
+
+# 3. CONVERT TO YOLO
+python scripts/convert_spark2021_to_yolo.py --spark-dir data/raw/SPARK-2021 --out data/processed/spark2021 --link-mode hardlink
+
+# 4. AUGMENT TRAINING SET (TRAIN-ONLY ISOLATION)
+python src/data/augment.py --data data/processed/spark2021 --copies 1 --seed 42
+
+# 5. AUDIT SPLIT LEAKAGE
+python scripts/check_split_leakage.py --train-dir data/processed/spark2021/images/train --test-dir data/processed/spark2021/images/test --train-samples 5000 --test-samples 550 --out outputs/audits/split_leakage_audit.json
+
+# 6. TRAIN 50 EPOCHS ON GV100
+python src/train.py --epochs 50 --imgsz 1024 --batch 16 --data-config configs/spark2021.yaml --name spark2021_yolov8n_50e --save-period 5 --device 0
+
+# 7. MULTI-SCALE EVALUATE ON TEST SET
+python src/eval.py --weights experiments/spark2021_yolov8n_50e/weights/best.pt --data configs/spark2021.yaml --split test --imgsz 1024 --device 0 --out outputs/evaluations/spark2021_test_1024.json
+python src/eval.py --weights experiments/spark2021_yolov8n_50e/weights/best.pt --data configs/spark2021.yaml --split test --imgsz 800 --device 0 --out outputs/evaluations/spark2021_test_800.json
+python src/eval.py --weights experiments/spark2021_yolov8n_50e/weights/best.pt --data configs/spark2021.yaml --split test --imgsz 640 --device 0 --out outputs/evaluations/spark2021_test_640.json
+
+# 8. EXPORT EDGE WEIGHTS
+yolo export model=experiments/spark2021_yolov8n_50e/weights/best.pt format=onnx imgsz=1024 simplify=True
+yolo export model=experiments/spark2021_yolov8n_50e/weights/best.pt format=ncnn imgsz=1024
+
+# 9. BENCHMARK ON WORKSTATION XEON CPU
+python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 640 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_640_benchmark.json
+python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 800 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
+python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 1024 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_1024_benchmark.json
+```
