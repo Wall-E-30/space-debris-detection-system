@@ -1,0 +1,114 @@
+{
+  "timestamp": "2026-10-19T11:24:44.325426+00:00",
+  "dataset_dir": "data\\processed\\spark2021",
+  "total_train_images": 180000,
+  "total_test_images": 30000,
+  "audited_train_samples": 5000,
+  "audited_test_samples": 550,
+  "hamming_threshold": 3,
+  "near_duplicates_count": 337,
+  "leakage_rate_pct": 61.27,
+  "avg_min_distance": 4.63,
+  "near_duplicate_samples": [
+    {
+      "test_image": "AcrimSat_image_26996_img.jpg",
+      "train_match": "Debris_image_11118_img.jpg",
+      "hamming_distance": 2
+    },
+    {
+      "test_image": "Terra_image_09314_img.jpg",
+      "train_match": "AcrimSat_image_11557_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Aura_image_02313_img.jpg",
+      "train_match": "Terra_image_07869_img.jpg",
+      "hamming_distance": 1
+    },
+    {
+      "test_image": "Debris_image_15739_img.jpg",
+      "train_match": "CubeSat_image_05623_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Aquarius_image_06506_img.jpg",
+      "train_match": "aug1_Calipso_image_08513_img.jpg",
+      "hamming_distance": 1
+    },
+    {
+      "test_image": "Cloudsat_image_17635_img.jpg",
+      "train_match": "CubeSat_image_08413_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "TRMM_image_17541_img.jpg",
+      "train_match": "AcrimSat_image_11557_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Aura_image_23814_img.jpg",
+      "train_match": "Sentinel-6_image_03636_img.jpg",
+      "hamming_distance": 1
+    },
+    {
+      "test_image": "Jason_image_20333_img.jpg",
+      "train_match": "aug1_Jason_image_05765_img.jpg",
+      "hamming_distance": 1
+    },
+    {
+      "test_image": "Cloudsat_image_10155_img.jpg",
+      "train_match": "AcrimSat_image_11557_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Cloudsat_image_22203_img.jpg",
+      "train_match": "Jason_image_01526_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Sentinel-6_image_26113_img.jpg",
+      "train_match": "AcrimSat_image_03360_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Jason_image_03083_img.jpg",
+      "train_match": "AcrimSat_image_11557_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Debris_image_14411_img.jpg",
+      "train_match": "aug1_Terra_image_03922_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Debris_image_03266_img.jpg",
+      "train_match": "aug1_CubeSat_image_07568_img.jpg",
+      "hamming_distance": 2
+    },
+    {
+      "test_image": "Sentinel-6_image_25929_img.jpg",
+      "train_match": "CubeSat_image_10062_img.jpg",
+      "hamming_distance": 1
+    },
+    {
+      "test_image": "Aquarius_image_15305_img.jpg",
+      "train_match": "Aura_image_08387_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "CubeSat_image_25290_img.jpg",
+      "train_match": "aug1_CubeSat_image_06578_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "TRMM_image_25885_img.jpg",
+      "train_match": "Sentinel-6_image_01275_img.jpg",
+      "hamming_distance": 0
+    },
+    {
+      "test_image": "Jason_image_12198_img.jpg",
+      "train_match": "Jason_image_01526_img.jpg",
+      "hamming_distance": 0
+    }
+  ]
+}

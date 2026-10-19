@@ -1,0 +1,52 @@
+{
+  "timestamp": "2026-10-19T11:28:19.235586+00:00",
+  "platform": {
+    "system": "Windows",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 85 Stepping 7, GenuineIntel",
+    "python_version": "3.11.9",
+    "cpu_count": 16
+  },
+  "config": {
+    "imgsz": 1024,
+    "runs": 100,
+    "warmup": 10,
+    "threads": 4
+  },
+  "benchmarks": [
+    {
+      "engine": "ONNX Runtime (CPU, threads=1)",
+      "format": "onnx",
+      "precision": "fp32",
+      "model": "best.onnx",
+      "device": "cpu",
+      "imgsz": 1024,
+      "threads": 1,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 167.64,
+      "inference_median_ms": 165.98,
+      "inference_p95_ms": 175.38,
+      "inference_std_ms": 4.34,
+      "fps": 6.0,
+      "peak_rss_mb": 204.92
+    },
+    {
+      "engine": "ONNX Runtime (CPU, threads=4)",
+      "format": "onnx",
+      "precision": "fp32",
+      "model": "best.onnx",
+      "device": "cpu",
+      "imgsz": 1024,
+      "threads": 4,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 65.2,
+      "inference_median_ms": 64.33,
+      "inference_p95_ms": 72.8,
+      "inference_std_ms": 4.27,
+      "fps": 15.3,
+      "peak_rss_mb": 207.36
+    }
+  ]
+}
