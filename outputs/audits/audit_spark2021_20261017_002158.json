@@ -1,0 +1,118 @@
+{
+  "dataset_name": "SPARK2021",
+  "timestamp": "2026-10-17 00:21:58",
+  "root_directory": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021",
+  "debris_present": true,
+  "classes_detected": [
+    "AcrimSat",
+    "Aquarius",
+    "Aura",
+    "Calipso",
+    "Cloudsat",
+    "CubeSat",
+    "Debris",
+    "Jason",
+    "Sentinel-6",
+    "Terra",
+    "TRMM"
+  ],
+  "total_classes": 11,
+  "total_rows": 150000,
+  "total_unique_images": 150000,
+  "debris_instances_total": 25000,
+  "debris_percentage": 16.67,
+  "satellite_instances_total": 125000,
+  "splits": {
+    "train": {
+      "csv_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\train_labels.csv",
+      "total_rows": 90000,
+      "unique_images": 90000,
+      "class_counts": {
+        "CubeSat": 7500,
+        "Jason": 7500,
+        "Debris": 15000,
+        "TRMM": 7500,
+        "Cloudsat": 7500,
+        "Terra": 7500,
+        "Sentinel-6": 7500,
+        "AcrimSat": 7500,
+        "Aura": 7500,
+        "Aquarius": 7500,
+        "Calipso": 7500
+      },
+      "debris_instances": 15000,
+      "satellite_instances": 75000,
+      "invalid_bboxes": 0,
+      "mean_bbox_area_px": 18318.04,
+      "illumination_stats": {
+        "min": 0.0374,
+        "max": 254.8094,
+        "mean": 13.233
+      }
+    },
+    "val": {
+      "csv_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\validate_labels.csv",
+      "total_rows": 30000,
+      "unique_images": 30000,
+      "class_counts": {
+        "Cloudsat": 2500,
+        "Terra": 2500,
+        "Sentinel-6": 2500,
+        "CubeSat": 2500,
+        "AcrimSat": 2500,
+        "Aquarius": 2500,
+        "TRMM": 2500,
+        "Debris": 5000,
+        "Aura": 2500,
+        "Calipso": 2500,
+        "Jason": 2500
+      },
+      "debris_instances": 5000,
+      "satellite_instances": 25000,
+      "invalid_bboxes": 0,
+      "mean_bbox_area_px": 18431.68,
+      "illumination_stats": {
+        "min": 0.039,
+        "max": 254.2503,
+        "mean": 13.3208
+      }
+    },
+    "test": {
+      "csv_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\test_labels.csv",
+      "total_rows": 30000,
+      "unique_images": 30000,
+      "class_counts": {
+        "Aquarius": 2500,
+        "Debris": 5000,
+        "AcrimSat": 2500,
+        "Jason": 2500,
+        "Terra": 2500,
+        "Sentinel-6": 2500,
+        "Aura": 2500,
+        "CubeSat": 2500,
+        "TRMM": 2500,
+        "Calipso": 2500,
+        "Cloudsat": 2500
+      },
+      "debris_instances": 5000,
+      "satellite_instances": 25000,
+      "invalid_bboxes": 0,
+      "mean_bbox_area_px": 18454.02,
+      "illumination_stats": {}
+    }
+  },
+  "class_counts_overall": {
+    "CubeSat": 12500,
+    "Jason": 12500,
+    "Debris": 25000,
+    "TRMM": 12500,
+    "Cloudsat": 12500,
+    "Terra": 12500,
+    "Sentinel-6": 12500,
+    "AcrimSat": 12500,
+    "Aura": 12500,
+    "Aquarius": 12500,
+    "Calipso": 12500
+  },
+  "strategic_decision": "Branch A (Debris confirmed present in SPARK2021: 11-class Spacecraft + Debris system)"
+}

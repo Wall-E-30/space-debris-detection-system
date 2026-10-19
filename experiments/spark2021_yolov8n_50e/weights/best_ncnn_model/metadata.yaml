@@ -1,0 +1,30 @@
+description: Ultralytics best model trained on D:\SharanyaTIlak_Spoorthy_Indu\space-debris-detection-system\configs\spark2021.yaml
+author: Ultralytics
+date: '2026-10-19T13:51:15.850653+05:30'
+version: 8.4.178
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+head: Detect
+batch: 1
+imgsz:
+- 1024
+- 1024
+names:
+  0: AcrimSat
+  1: Aquarius
+  2: Aura
+  3: Calipso
+  4: Cloudsat
+  5: CubeSat
+  6: Debris
+  7: Jason
+  8: Sentinel-6
+  9: Terra
+  10: TRMM
+args:
+  batch: 1
+  quantize: null
+channels: 3
+end2end: false

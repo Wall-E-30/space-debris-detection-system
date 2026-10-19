@@ -1,0 +1,19 @@
+{
+  "train_csv": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\train_labels.csv",
+  "val_csv": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\validate_labels.csv",
+  "train_total_rows": 90000,
+  "train_unique_images": 0,
+  "val_total_rows": 30000,
+  "val_unique_images": 0,
+  "total_rows": 120000,
+  "total_unique_images": 0,
+  "classes_detected": [],
+  "class_count_total": 0,
+  "class_counts_train": {},
+  "class_counts_val": {},
+  "class_counts": {},
+  "debris_classes_found": [],
+  "debris_instances_count": 0,
+  "satellite_instances_count": 0,
+  "decision_recommendation": "Branch B (Debris absent in annotations \u2014 10-class spacecraft detection)"
+}

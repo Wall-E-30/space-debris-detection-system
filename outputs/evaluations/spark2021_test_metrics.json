@@ -1,0 +1,100 @@
+{
+  "timestamp": "2026-10-19T08:20:52.400252+00:00",
+  "model_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\experiments\\spark2021_yolov8n_50e\\weights\\best.pt",
+  "data_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\configs\\spark2021.yaml",
+  "imgsz": 1024,
+  "split": "test",
+  "device": "0",
+  "map50": 0.9902,
+  "map50_95": 0.8698,
+  "mp": 0.9878,
+  "mr": 0.9787,
+  "speed": {
+    "preprocess_ms": 3.36,
+    "inference_ms": 3.57,
+    "postprocess_ms": 1.03,
+    "total_ms": 7.96
+  },
+  "per_class": {
+    "AcrimSat": {
+      "class_id": 0,
+      "p": 0.9953,
+      "r": 1.0,
+      "map50": 0.995,
+      "map50_95": 0.9509
+    },
+    "Aquarius": {
+      "class_id": 1,
+      "p": 0.994,
+      "r": 0.99,
+      "map50": 0.9948,
+      "map50_95": 0.9297
+    },
+    "Aura": {
+      "class_id": 2,
+      "p": 0.996,
+      "r": 0.9961,
+      "map50": 0.995,
+      "map50_95": 0.938
+    },
+    "Calipso": {
+      "class_id": 3,
+      "p": 0.9758,
+      "r": 0.992,
+      "map50": 0.9948,
+      "map50_95": 0.9133
+    },
+    "Cloudsat": {
+      "class_id": 4,
+      "p": 0.9981,
+      "r": 0.946,
+      "map50": 0.9934,
+      "map50_95": 0.8625
+    },
+    "CubeSat": {
+      "class_id": 5,
+      "p": 0.9622,
+      "r": 0.9368,
+      "map50": 0.9698,
+      "map50_95": 0.6341
+    },
+    "Debris": {
+      "class_id": 6,
+      "p": 0.9775,
+      "r": 0.9734,
+      "map50": 0.9834,
+      "map50_95": 0.8539
+    },
+    "Jason": {
+      "class_id": 7,
+      "p": 0.9941,
+      "r": 0.9988,
+      "map50": 0.995,
+      "map50_95": 0.9173
+    },
+    "Sentinel-6": {
+      "class_id": 8,
+      "p": 0.996,
+      "r": 0.992,
+      "map50": 0.995,
+      "map50_95": 0.8993
+    },
+    "Terra": {
+      "class_id": 9,
+      "p": 0.9846,
+      "r": 0.9452,
+      "map50": 0.9812,
+      "map50_95": 0.8916
+    },
+    "TRMM": {
+      "class_id": 10,
+      "p": 0.9924,
+      "r": 0.9951,
+      "map50": 0.9948,
+      "map50_95": 0.7776
+    }
+  },
+  "size_mb": 6.29,
+  "params": null,
+  "gflops": null
+}

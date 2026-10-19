@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-10-18T13:05:05.172988+00:00",
+  "experiment_name": "spark2021_yolov8n_50e",
+  "epochs": 50,
+  "imgsz": 1024,
+  "batch": 16,
+  "data_config": "D:/SharanyaTIlak_Spoorthy_Indu/space-debris-detection-system/configs/spark2021.yaml",
+  "device": "0",
+  "save_dir": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\experiments\\spark2021_yolov8n_50e"
+}

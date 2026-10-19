@@ -1,7 +1,7 @@
 {
   "dataset_name": "SPARK2021",
-  "timestamp": "2026-10-16 23:40:48",
-  "root_directory": "C:\\Users\\tilak\\Desktop\\Repos\\space-debris-detection\\data\\raw\\SPARK2021",
+  "timestamp": "2026-10-17 00:35:14",
+  "root_directory": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021",
   "debris_present": true,
   "classes_detected": [
     "AcrimSat",
@@ -24,7 +24,7 @@
   "satellite_instances_total": 125000,
   "splits": {
     "train": {
-      "csv_path": "C:\\Users\\tilak\\Desktop\\Repos\\space-debris-detection\\data\\raw\\SPARK2021\\train_labels.csv",
+      "csv_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\train_labels.csv",
       "total_rows": 90000,
       "unique_images": 90000,
       "class_counts": {
@@ -51,7 +51,7 @@
       }
     },
     "val": {
-      "csv_path": "C:\\Users\\tilak\\Desktop\\Repos\\space-debris-detection\\data\\raw\\SPARK2021\\validate_labels.csv",
+      "csv_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\validate_labels.csv",
       "total_rows": 30000,
       "unique_images": 30000,
       "class_counts": {
@@ -78,7 +78,7 @@
       }
     },
     "test": {
-      "csv_path": "C:\\Users\\tilak\\Desktop\\Repos\\space-debris-detection\\data\\raw\\SPARK2021\\test_labels.csv",
+      "csv_path": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\data\\raw\\SPARK-2021\\test_labels.csv",
       "total_rows": 30000,
       "unique_images": 30000,
       "class_counts": {

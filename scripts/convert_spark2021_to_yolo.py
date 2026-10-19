@@ -399,6 +399,9 @@ def convert_spark2021(
             raw_p = Path("data/raw/SPARK-2021")
         elif Path("data/raw/SPARK2021").exists():
             raw_p = Path("data/raw/SPARK2021")
+            
+    out_p = Path(out_dir)
+    out_p.mkdir(parents=True, exist_ok=True)
 
     print("\n" + "=" * 80)
     print("  SPARK2021 TO ULTRALYTICS YOLO FORMAT CONVERTER")

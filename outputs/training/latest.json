@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-10-16T03:42:54.179866+00:00",
-  "experiment_name": "spark_yolov8n_50e",
+  "timestamp": "2026-10-18T13:05:05.172988+00:00",
+  "experiment_name": "spark2021_yolov8n_50e",
   "epochs": 50,
   "imgsz": 1024,
   "batch": 16,
-  "data_config": "D:/SharanyaTIlak_Spoorthy_Indu/space-debris-detection-system/configs/spark.yaml",
+  "data_config": "D:/SharanyaTIlak_Spoorthy_Indu/space-debris-detection-system/configs/spark2021.yaml",
   "device": "0",
-  "save_dir": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\experiments\\spark_yolov8n_50e-2"
+  "save_dir": "D:\\SharanyaTIlak_Spoorthy_Indu\\space-debris-detection-system\\experiments\\spark2021_yolov8n_50e"
 }
