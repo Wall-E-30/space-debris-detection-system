@@ -1,0 +1,16 @@
+--- a/docs/decisions.md
++++ b/docs/decisions.md
+@@ -242,6 +242,10 @@
+ ## 12. Candidate Model Checkpoint Freeze (Phase 5 Completion)
+ 
+ ### DEC-09: Model Checkpoint Freeze Protocol
++- **Official Candidate Checkpoint:** `experiments/spark2021_yolov8n_50e/weights/best.pt`
++- **Model Checkpoint SHA-256:** `34fe3d10b045849fef33e29f10028e878fbd7745a71e2839aa02875e47c8795d`
++- **Exported ONNX Checkpoint:** `experiments/spark2021_yolov8n_50e/weights/best.onnx`
++- **ONNX Model SHA-256:** `df2cde420af209acddcc9aceb5e9d9ca909d75cdca16474bc7f71aca60260912`
++- **Git Freeze Tag:** `model-freeze` (Requires explicit tagging in repository)
+ 
+ ---
+@@ -282,1 +286,2 @@
+-This confirms that YOLOv8-Nano on Raspberry Pi 5 comfortably satisfies the original PRD real-time constraint ($\le 1000\text{ ms}$) across all tested resolutions.
++This confirms that YOLOv8-Nano on Raspberry Pi 5 comfortably satisfies the real-time target ($\le 1000\text{ ms}$) across all tested resolutions. Note: The originally specified Raspberry Pi 4 (Cortex-A72) remains an open hardware validation gate.

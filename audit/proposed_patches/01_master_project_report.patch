@@ -1,0 +1,57 @@
+--- a/docs/MASTER_PROJECT_REPORT.md
++++ b/docs/MASTER_PROJECT_REPORT.md
+@@ -17,1 +17,1 @@
+-The vision pipeline is powered by an optimized **YOLOv8-Nano** architecture ($3.01\text{M parameters}$, $8.2\text{ GFLOPs}$ at $640\text{px}$), exported to hardware-portable **ONNX** and ARM-vectorized **NCNN** formats, and validated directly on physical edge Single Board Computers (**Raspberry Pi 5**). It is coupled with an **independent SGP4 orbital tracking catalog layer** that provides geocentric ephemeris propagation for known satellite assets without conflating 2D visual bounding boxes with 3D physical orbit determination.
++The vision pipeline is powered by an optimized **YOLOv8-Nano** architecture ($3.14\text{M parameters}$, $8.8\text{ GFLOPs}$ at $640\text{px}$, $22.4\text{ GFLOPs}$ at native $1024\text{px}$), exported to hardware-portable **ONNX** and ARM-vectorized **NCNN** formats, and validated directly on physical edge Single Board Computers (**Raspberry Pi 5**; Raspberry Pi 4 pending). It is coupled with an **independent SGP4 orbital tracking catalog layer** that provides geocentric ephemeris propagation for known satellite assets without conflating 2D visual bounding boxes with 3D physical orbit determination.
+@@ -35,1 +35,1 @@
+-2. **Strict Real-Time Latency Gate:** The operational requirement demands inference latency **$\le 1000\text{ ms}$ (1 second)** to allow on-board flight software to process camera frames, calculate relative vectors, and execute avoidance heuristics.
++2. **Strict Real-Time Latency Gate:** The team-defined operational requirement targets inference latency **$\le 1000\text{ ms}$ (1 second)** on real edge SBC hardware to allow on-board flight software to process camera frames and execute avoidance heuristics. (Validated on Raspberry Pi 5; physical Raspberry Pi 4 gate remains open).
+@@ -62,9 +62,5 @@
+-    subgraph RECONCILIATION["Cross-System Association & Conjunction Assessment"]
+-        BBOX --> ROUTER{"Identified Class"}
+-        ROUTER -- "Known Spacecraft (0..5, 7..10)" --> MATCH["Lookup Candidate NORAD ID"]
+-        MATCH --> ORBIT_3D
+-        ORBIT_3D --> REL_DIST["Calculate Relative Ephemeris & Conjunction Risk"]
+-        ROUTER -- "Class 6: Debris" --> UNCAT["Flag as UNCATALOGED Fragment"]
+-        UNCAT --> ALERT["Raise Visual Proximity Alert (No TLE Propagation Possible)"]
+-    end
++    subgraph MONITORING["Dual-Track Astrodynamics & Vision Awareness (DEC-05)"]
++        BBOX --> VIS_ALERT["Visual Bearing & Object Classification"]
++        ORBIT_3D --> CAT_ALERT["Independent Known-Asset Catalog Awareness"]
++        note["Note: 2D BBoxes cannot determine 3D orbits or range; Debris is uncataloged"]
++    end
+@@ -115,1 +111,1 @@
+-* **Strict Split Isolation Gate:** Photometric augmentation was applied **exclusively to the 90,000 raw training images**, doubling the training set to **180,000 images** (`aug1_*`). Exactly zero augmented images exist in `val/` or `test/`, guaranteeing that evaluations remain unpolluted.
++* **Strict Split Isolation Gate:** Photometric augmentation was applied **exclusively to the 90,000 raw training images**, doubling the training set to **180,000 images** (`aug1_*`). Exactly zero augmented images exist in `val/` or `test/`. (Note: Trajectory-level sequence leakage across raw splits is not ruled out due to dHash collapse).
+@@ -128,1 +124,1 @@
+-* **Hyperparameters:** YOLOv8-Nano, $1024 \times 1024\text{ px}$ resolution, batch size 16, 50 epochs ($562,500$ iterations), SGD optimizer, mosaic augmentation closing at epoch 40 (`train_batch450000.jpg`), mixed precision enabled.
++* **Hyperparameters:** YOLOv8-Nano, $1024 \times 1024\text{ px}$ resolution, batch size 16, 50 epochs ($562,500$ iterations), optimizer auto (SGD), mosaic augmentation closing at epoch 40 (`train_batch450000.jpg`), mixed precision enabled.
+@@ -136,15 +132,15 @@
+ | Class Name | 1024px mAP@50 | 1024px mAP@50-95 | 800px mAP@50 | 800px mAP@50-95 | 640px mAP@50 | 640px mAP@50-95 |
+ |---|:---:|:---:|:---:|:---:|:---:|:---:|
+-| `AcrimSat` | 99.42% | 90.07% | 99.40% | 89.60% | 99.27% | 87.82% |
+-| `Aquarius` | 99.49% | 90.96% | 99.49% | 90.62% | 99.41% | 89.58% |
+-| `Aura` | 99.47% | 89.70% | 99.44% | 89.15% | 99.30% | 87.67% |
+-| `Calipso` | 99.24% | 83.21% | 99.14% | 82.52% | 98.98% | 80.59% |
+-| `Cloudsat` | 99.49% | 89.87% | 99.47% | 89.50% | 99.36% | 88.37% |
+-| `CubeSat` | 98.71% | 82.17% | 98.54% | 81.33% | 98.12% | 79.46% |
+-| **`Debris`** | **98.34%** | **85.39%** | **98.19%** | **84.31%** | **97.83%** | **82.81%** |
+-| `Jason` | 99.48% | 89.70% | 99.46% | 89.37% | 99.38% | 88.22% |
+-| `Sentinel-6` | 99.49% | 90.99% | 99.46% | 90.73% | 99.39% | 89.65% |
+-| `Terra` | 99.47% | 89.80% | 99.44% | 89.36% | 99.33% | 87.89% |
+-| `TRMM` | 96.65% | 74.88% | 96.34% | 74.68% | 95.80% | 73.57% |
++| `AcrimSat` | 99.50% | 95.09% | 99.49% | 95.16% | 99.49% | 94.40% |
++| `Aquarius` | 99.48% | 92.97% | 99.47% | 92.56% | 99.45% | 91.57% |
++| `Aura` | 99.50% | 93.80% | 99.49% | 94.12% | 99.50% | 94.01% |
++| `Calipso` | 99.48% | 91.33% | 99.36% | 90.82% | 99.30% | 89.85% |
++| `Cloudsat` | 99.34% | 86.25% | 99.03% | 85.08% | 98.75% | 82.53% |
++| `CubeSat` | 96.98% | 63.41% | 96.81% | 62.08% | 96.03% | 59.20% |
++| **`Debris`** | **98.34%** | **85.39%** | **98.28%** | **84.31%** | **98.02%** | **82.81%** |
++| `Jason` | 99.50% | 91.73% | 99.49% | 91.44% | 99.42% | 90.02% |
++| `Sentinel-6` | 99.50% | 89.93% | 99.49% | 89.41% | 99.48% | 88.29% |
++| `Terra` | 98.12% | 89.16% | 98.00% | 88.92% | 97.26% | 87.59% |
++| `TRMM` | 99.48% | 77.76% | 99.47% | 77.24% | 99.44% | 75.44% |
+ | **OVERALL (All 11 Classes)** | **99.02%** | **86.98%** | **98.94%** | **86.47%** | **98.74%** | **85.06%** |
+@@ -154,1 +150,1 @@
+-3. **TRMM Misclassification Root Cause:** `TRMM` exhibits the lowest score (74.88% mAP@50-95). Analysis of the confusion matrix reveals that TRMM's asymmetric solar arrays and radar antenna create false positive background detections under dark Earth-limb illumination.
++3. **CubeSat & TRMM Geometry Root Cause:** `CubeSat` exhibits the lowest score (63.41% mAP@50-95) due to having the smallest bounding box area ($<100\times100$ px), where 3-5 pixel boundary errors severely depress high-threshold IoU ($0.75-0.95$). `TRMM` achieves 77.76% due to elongated solar wing bounding box regression variance.

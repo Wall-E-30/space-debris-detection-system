@@ -1,0 +1,11 @@
+{
+  "num_images_tested": 50,
+  "total_pytorch_detections": 46,
+  "total_onnx_detections": 46,
+  "matched_detections_iou50": 46,
+  "mean_iou_matched": 1.0,
+  "min_iou_matched": 1.0,
+  "mean_conf_delta": 1e-06,
+  "max_conf_delta": 4e-06,
+  "class_agreement_pct": 100.0
+}

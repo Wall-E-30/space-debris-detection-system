@@ -239,6 +239,19 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 
 ---
 
+## DEC-09: Model Checkpoint Freeze Protocol (Phase 5 Candidate)
+
+**Date:** 2026-10-23  
+**Author:** ML & Systems Team  
+**Status:** Decided & Documented  
+- **Official Candidate Checkpoint:** `experiments/spark2021_yolov8n_50e/weights/best.pt`
+- **Model Checkpoint SHA-256:** `34fe3d10b045849fef33e29f10028e878fbd7745a71e2839aa02875e47c8795d`
+- **Exported ONNX Checkpoint:** `experiments/spark2021_yolov8n_50e/weights/best.onnx`
+- **ONNX Model SHA-256:** `df2cde420af209acddcc9aceb5e9d9ca909d75cdca16474bc7f71aca60260912`
+- **Git Freeze Tag:** `model-freeze` (Requires explicit tagging in repository)
+
+---
+
 ## DEC-10: Transition to SPARK-2021 11-Class Dataset (Synthetic Debris Integration)
 
 **Date:** 2026-10-19  
@@ -287,6 +300,7 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 2. **RAM Footprint:** Measured peak process RSS ranges from **138.67 MB** (640px) to **216.73 MB** (1024px), consuming $<5.5\%$ of the Raspberry Pi 5's available system RAM.
 3. **Thermal & Multi-Core Scaling:** 4-thread execution achieved a $2.61\times$ speedup over single-thread (378.56 ms vs 144.83 ms) with stable p95 latencies ($\le 5\text{ ms}$ variance).
 4. **Architectural Confirmation:** ONNX Runtime FP32 on Raspberry Pi 5 satisfies all edge deployment criteria without requiring aggressive INT8 quantization for real-time throughput. INT8 remains an optional optimization for memory footprint reduction.
+5. **Hardware Validation Note:** This confirms that YOLOv8-Nano on Raspberry Pi 5 comfortably satisfies the real-time target ($\le 1000\text{ ms}$) across all tested resolutions. Note: The originally specified Raspberry Pi 4 (Cortex-A72) remains an open hardware validation gate.
 
 ---
 

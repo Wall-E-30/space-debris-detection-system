@@ -106,8 +106,8 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
    - 1024px: 99.02% mAP@50, **86.98% mAP@50-95** (Debris: 85.39%)
    - 800px: 98.94% mAP@50, **86.47% mAP@50-95** (Debris: 84.31%)
    - 640px: 98.74% mAP@50, **85.06% mAP@50-95** (Debris: 82.81%)
-2. Error analysis report documents confusion matrix, median bounding-box dimensions, TRMM background misclassifications, and the 5-CAD model synthetic debris representation.
-3. Candidate model is officially frozen with weights archived in `experiments/spark2021_yolov8n_50e/weights/` and documentation committed.
+2. Error analysis report documents confusion matrix, median bounding-box dimensions, CubeSat small bounding-box sensitivity (<100x100 px), TRMM high-IoU boundary regression variance, and the 5-CAD model synthetic debris representation.
+3. Candidate model is officially frozen with weights archived in `experiments/spark2021_yolov8n_50e/weights/` and documentation committed (DEC-09).
 
 **Plans**: 2 plans (Complete)
 

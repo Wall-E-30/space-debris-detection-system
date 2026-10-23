@@ -1,0 +1,8 @@
+--- a/docs/PHASE_1_COMPLETE_DOCUMENTATION.md
++++ b/docs/PHASE_1_COMPLETE_DOCUMENTATION.md
+@@ -12,1 +12,1 @@
+-> An exhaustive audit of all 80,000 label rows in the original SPARK dataset revealed **10 operational spacecraft classes and ZERO debris annotations**. In Phase 1, the model was strictly evaluated as a **multi-spacecraft detection system (Branch B)**. To resolve this core limitation, Phase 2 supersedes DEC-04 by adopting **SPARK2021** (which introduces ~25,000 genuine debris images across 5 debris sub-models).
++> An exhaustive audit of all 80,000 label rows in the original SPARK dataset revealed **10 operational spacecraft classes and ZERO debris annotations**. In Phase 1, the model was strictly evaluated as a **multi-spacecraft detection system (Branch B)**. To resolve this core limitation, Phase 2 supersedes DEC-04 by adopting **SPARK-2021** (which introduces 25,000 synthetic debris annotations rendered across 5 3D CAD debris models).
+@@ -141,1 +141,1 @@
+-1. **Shift to SPARK2021**: The project transitioned to the ICIP 2021 SPARK dataset, featuring **11 classes** (10 satellites + 1 consolidated Debris class with **~25,000 real debris images**).
++1. **Shift to SPARK-2021**: The project transitioned to the ICIP 2021 SPARK dataset, featuring **11 classes** (10 satellites + 1 consolidated Debris class with **25,000 synthetic CAD debris images** across 5 geometric models).

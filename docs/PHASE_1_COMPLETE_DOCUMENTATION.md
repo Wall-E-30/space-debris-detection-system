@@ -9,7 +9,7 @@
 
 > [!WARNING]
 > ### Critical Scope & Dataset Disclosure (Finding F1 / Decision DEC-04)
-> An exhaustive audit of all 80,000 label rows in the original SPARK dataset revealed **10 operational spacecraft classes and ZERO debris annotations**. In Phase 1, the model was strictly evaluated as a **multi-spacecraft detection system (Branch B)**. To resolve this core limitation, Phase 2 supersedes DEC-04 by adopting **SPARK2021** (which introduces ~25,000 genuine debris images across 5 debris sub-models).
+> An exhaustive audit of all 80,000 label rows in the original SPARK dataset revealed **10 operational spacecraft classes and ZERO debris annotations**. In Phase 1, the model was strictly evaluated as a **multi-spacecraft detection system (Branch B)**. To resolve this core limitation, Phase 2 supersedes DEC-04 by adopting **SPARK-2021** (which introduces 25,000 synthetic debris annotations rendered across 5 3D CAD debris models).
 
 ---
 
@@ -138,7 +138,7 @@ Every verification gate established in the Phase 1 plan passed with zero blocker
 
 Phase 1 achieved 100% of its engineering goals, but its most critical discovery (DEC-04) revealed that the old SPARK dataset lacked debris. To fulfill the challenge's core objective — **Space Debris Detection**:
 
-1. **Shift to SPARK2021**: The project transitioned to the ICIP 2021 SPARK dataset, featuring **11 classes** (10 satellites + 1 consolidated Debris class with **~25,000 real debris images**).
+1. **Shift to SPARK-2021**: The project transitioned to the ICIP 2021 SPARK dataset, featuring **11 classes** (10 satellites + 1 consolidated Debris class with **25,000 synthetic CAD debris images** across 5 geometric models).
 2. **Superseding DEC-04**: DEC-04 (Branch B satellite-only lock) is now retired in favor of full multi-class satellite and debris detection.
 3. **Workflow Automation Created**:
    * [`scripts/extract_spark2021.py`](file:///c:/Users/tilak/Desktop/Repos/space-debris-detection/scripts/extract_spark2021.py): Robust Python-based archive extraction.
