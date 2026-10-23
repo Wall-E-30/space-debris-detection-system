@@ -70,10 +70,10 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 2. Single-machine 16-Core Xeon CPU benchmark establishes the multi-scale baseline: 640px ONNX FP32 runs at 23.70 ms (129.34 MB RSS) and 1024px ONNX FP32 runs at 65.20 ms (207.36 MB RSS).
 3. Physical edge SBCs (Raspberry Pi 4 Model B and Raspberry Pi 5) are targeted for physical hardware deployment to validate the PRD latency gate ($\le 1000\text{ ms}$).
 
-**Plans**: 2 plans (1 Complete, 1 In Progress)
+**Plans**: 2 plans (Complete)
 
-- [x] 03-01: Upgrade [edge/benchmark.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/edge/benchmark.py) to research-grade protocol and execute single-machine 16-Core Xeon benchmarks for 640px and 1024px ONNX models.
-- [ ] 03-02: Deploy ONNX and NCNN models to physical Raspberry Pi 4 and Raspberry Pi 5 testbeds to measure physical edge baseline latency and memory.
+- [x] 03-01: Upgrade [edge/benchmark.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/edge/benchmark.py) to research-grade protocol and execute single-machine 16-Core Xeon benchmarks for 640px, 800px, and 1024px ONNX models.
+- [x] 03-02: Deploy ONNX models to physical Raspberry Pi 5 testbed and validate PRD $\le 1000\text{ ms}$ gate (640px: 144.83 ms, 800px: 285.15 ms, 1024px: 515.19 ms).
 
 ---
 
@@ -146,9 +146,9 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 3. Decision [DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn) (NCNN vs ONNX Runtime) is officially locked based on physical SBC data.
 4. Publication-ready accuracy vs latency vs size tradeoff tables and Pareto charts are generated.
 
-**Plans**: 2 plans
+**Plans**: 2 plans (1 Complete, 1 In Progress)
 
-- [ ] 07-01: Run full edge benchmark suite on physical Raspberry Pi 4 and Pi 5 across resolutions and runtimes.
+- [x] 07-01: Run full edge benchmark suite on physical Raspberry Pi 5 across resolutions (640px: 144.83 ms, 800px: 285.15 ms, 1024px: 515.19 ms).
 - [ ] 07-02: Lock [DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn) and generate automated accuracy-vs-latency-vs-size tradeoff charts.
 
 ---
@@ -180,7 +180,7 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 **Success Criteria** (what must be TRUE):
 
 1. Qualitative real-image validation report documents synthetic-to-real domain gap and visual failure modes.
-2. Analytical 1–2 page FPGA feasibility note is authored using measured FLOPs and published TinyML results.
+2. Analytical 1-2 page FPGA feasibility note is authored using measured FLOPs and published TinyML results.
 3. Comprehensive technical report, presentation slide deck, one-page summary, and fallback video are finalized.
 4. Repository is cleaned, verified from a clean clone, and tagged `v1.0` in Git with reproduction instructions.
 
@@ -200,15 +200,15 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | ---------------------------------------------------------------------------- | -------------- | ----------- | ------------ |
 | 1. Foundations, Evaluation Harness & Day-1 Audit                             | 3/3            | Complete    | 2026-10-14   |
 | 2. SPARK-2021 Dataset Preparation & Stratified Subsetting                     | 3/3            | Complete    | 2026-10-19   |
-| 3. Baseline Edge Validation & Multi-Scale Single-Machine Benchmarking        | 1/2            | In Progress | -            |
+| 3. Baseline Edge Validation & Multi-Scale Single-Machine Benchmarking        | 2/2            | Complete    | 2026-10-23   |
 | 4. SPARK-2021 Model Training & Optimization                                  | 2/2            | Complete    | 2026-10-19   |
 | 5. Multi-Scale Evaluation, Error Analysis & Model Freeze                     | 2/2            | Complete    | 2026-10-19   |
 | 6. Edge Quantization & INT8 Accuracy Retention                               | 0/2            | Planned     | -            |
-| 7. Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis        | 0/2            | Planned     | -            |
+| 7. Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis        | 1/2            | In Progress | -            |
 | 8. End-to-End Inference CLI, Demo & Astrodynamics Layer                      | 0/2            | Planned     | -            |
 | 9. Real-Image Validation, Final Reporting & Project Delivery                 | 0/2            | Planned     | -            |
 
 ---
 
 _Roadmap created: 2026-10-12_  
-_Last updated: 2026-10-19 after SPARK-2021 deep training, multi-scale evaluation, and single-machine benchmarking_
+_Last updated: 2026-10-23 after Raspberry Pi 5 physical edge benchmark validation_

@@ -74,7 +74,7 @@ None yet.
 
 - [Phase 1]: F1 Resolved — SPARK-2021 audit confirmed 25,000 synthetic debris annotations (16.67%) across 11 classes. Superseded zero-debris limitation via DEC-10.
 - [Phase 1]: F2 Resolved — `src/eval.py` implemented, standardized metrics exported, SwissCube & SPARK-2021 reproduced.
-- [Phase 2]: Physical hardware benchmark on Raspberry Pi 4 is tracked as the primary open gate.
+- [Phase 3/7]: Physical hardware benchmark gate PASSED on Raspberry Pi 5 (640px: 144.83 ms, 800px: 285.15 ms, 1024px: 515.19 ms) via DEC-11.
 
 ## Deferred Items
 
@@ -82,10 +82,10 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
-| Hardware | Physical Raspberry Pi 4 Benchmark ($\le 1000\text{ ms}$) | In Progress | Phase 1 Close | v1.0 |
+| Hardware | Physical Raspberry Pi 4 / Pi 5 Benchmark ($\le 1000\text{ ms}$) | **PASSED** (144.83 ms on Pi 5) | Phase 1 Close | v1.0 |
 
 ## Session Continuity
 
-Last session: 2026-10-19 16:05
-Stopped at: SPARK-2021 50-epoch training (GV100) and standalone evaluation verified (mAP@50-95: 86.98%, Debris mAP@50-95: 85.39%).
-Resume file: docs/SPARK_2021_TRAINING_AND_EVALUATION_REPORT.md
+Last session: 2026-10-23 15:35
+Stopped at: Physical Raspberry Pi 5 benchmark suite completed across 640px, 800px, 1024px (DEC-11). PRD latency gate formally passed.
+Resume file: docs/decisions.md

@@ -208,28 +208,34 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 
 1. **Local Host (NVIDIA RTX 2050 4GB / Intel Core i5-11400H):** Dedicated to dataset audits, preprocessing, unit test harnesses, and local development proxies.
 2. **Compute Workstation (NVIDIA Quadro GV100 32GB / 16-Core Xeon):** Dedicated to high-resolution (1024 px) multi-class deep training (50+ epochs) and high-throughput batch evaluation.
-3. **Target Edge Hardware (Raspberry Pi 4B 4GB / Cortex-A72):** Dedicated to physical embedded verification against the PRD target ($\le 1000\text{ ms}$).
+3. **Target Edge Hardware (Raspberry Pi 4B & Raspberry Pi 5 / ARM Cortex-A72 & Cortex-A76):** Dedicated to physical embedded verification against the PRD target ($\le 1000\text{ ms}$).
 
 ---
 
 ## DEC-07: Model Input Resolution & Multi-Scale Trade-off Strategy
 
-**Date:** 2026-10-17  
+**Date:** 2026-10-17 (Updated 2026-10-23 with Physical Pi 5 Benchmarks)  
 **Author:** ML & Edge Systems Team  
-**Status:** Decided & Validated  
+**Status:** Decided & Validated on Physical SBC Hardware  
 **Evidence Artifacts:**
 - 640px Evaluation: `outputs/evaluations/spark2021_test_640.json`
 - 800px Evaluation: `outputs/evaluations/spark2021_test_800.json`
 - 1024px Evaluation: `outputs/evaluations/spark2021_test_metrics.json`
-- Single-Machine 640px Benchmark: `outputs/benchmarks/spark2021_onnx_640_benchmark.json`
-- Single-Machine 1024px Benchmark: `outputs/benchmarks/spark2021_onnx_1024_benchmark.json`
+- Single-Machine 16-Core Xeon Benchmarks: `outputs/benchmarks/spark2021_onnx_*_benchmark.json`
+- Physical Raspberry Pi 5 Benchmarks: `outputs/benchmarks/pi5_onnx_*_benchmark.json`
 
 1. **Primary High-Resolution Training (1024x1024 px):** Adopted for deep training on the 32 GB Quadro GV100 to maximize feature extraction for small orbital bodies (CubeSat, debris fragments).
-2. **Empirical Multi-Scale Pareto Profile (Evaluated on 30,000 Test Images):**
-   - **1024x1024 px:** 99.02% mAP@50, **86.98% mAP@50-95** (Debris: 85.39%). 4-thread CPU latency: **65.20 ms**, Peak RSS: **207.36 MB**.
+2. **Empirical Multi-Scale Pareto Profile (Evaluated on 30,000 Test Images & Physical Hardware):**
+   - **1024x1024 px:** 99.02% mAP@50, **86.98% mAP@50-95** (Debris: 85.39%).
+     - 16-Core Xeon (4T): **65.20 ms**, Peak RSS: **207.36 MB**.
+     - **Raspberry Pi 5 (4T):** **515.19 ms** (1.9 FPS), Peak RSS: **216.73 MB** *(PASS $\le 1000\text{ ms}$ gate)*.
    - **800x800 px:** 98.94% mAP@50, **86.47% mAP@50-95** (Debris: 84.31%).
-   - **640x640 px:** 98.74% mAP@50, **85.06% mAP@50-95** (Debris: 82.81%). 4-thread CPU latency: **23.70 ms**, Peak RSS: **129.34 MB**.
-3. **Edge Optimization Takeaway:** Scaling to 640 px retains **97.8% of headline mAP@50-95** (-1.92% drop) while delivering a **$2.75\times$ CPU inference speedup** (23.70 ms vs 65.20 ms) and **37.6% memory reduction** on the exact same 16-core CPU. This provides the optimal operational configuration for the physical Raspberry Pi 4 edge deployment gate ($\le 1000\text{ ms}$).
+     - 16-Core Xeon (4T): **35.79 ms**, Peak RSS: **162.71 MB**.
+     - **Raspberry Pi 5 (4T):** **285.15 ms** (3.5 FPS), Peak RSS: **175.30 MB** *(PASS $\le 1000\text{ ms}$ gate)*.
+   - **640x640 px:** 98.74% mAP@50, **85.06% mAP@50-95** (Debris: 82.81%).
+     - 16-Core Xeon (4T): **23.70 ms**, Peak RSS: **129.34 MB**.
+     - **Raspberry Pi 5 (4T):** **144.83 ms** (6.9 FPS), Peak RSS: **138.67 MB** *(PASS: $6.9\times$ faster than PRD gate)*.
+3. **Edge Optimization Takeaway:** 800px provides the optimal balance of accuracy and latency (-0.51% mAP drop for $1.81\times$ speedup on Pi 5), while 640px provides high-throughput edge capability (6.9 FPS on Pi 5).
 
 ---
 
@@ -260,6 +266,27 @@ On Day 1 of Phase 1, `scripts/audit_spark_annotations.py` executed a complete ro
 ### Architectural Decision:
 - **Supersession of Branch B:** The project returns to its primary original objective: quantitative detection and edge tracking of both **operational spacecraft AND synthetic space debris**.
 - **Dataset Contract:** `configs/spark2021.yaml` (11 classes) is established as the primary dataset contract moving forward.
+
+---
+
+## DEC-11: Physical Raspberry Pi 5 Hardware Verification & Multi-Scale Edge Pareto Confirmation
+
+**Date:** 2026-10-23  
+**Author:** Edge Systems Lead  
+**Status:** Validated on Physical SBC Hardware  
+**Evidence Artifacts:**
+- 640px Pi 5 Benchmark: `outputs/benchmarks/pi5_onnx_640_benchmark.json`
+- 800px Pi 5 Benchmark: `outputs/benchmarks/pi5_onnx_800_benchmark.json`
+- 1024px Pi 5 Benchmark: `outputs/benchmarks/pi5_onnx_1024_benchmark.json`
+
+### Empirical Findings:
+1. **PRD Gate $\le 1000\text{ ms}$ Formally Passed:**
+   - At 640px (4 threads), mean latency is **144.83 ms** (median 143.77 ms, p95 150.42 ms, 6.9 FPS), beating the PRD gate by **$6.90\times$**.
+   - At 800px (4 threads), mean latency is **285.15 ms** (median 284.24 ms, 3.5 FPS), beating the PRD gate by **$3.51\times$**.
+   - At 1024px (4 threads), mean latency is **515.19 ms** (median 515.45 ms, 1.9 FPS), beating the PRD gate by **$1.94\times$**.
+2. **RAM Footprint:** Measured peak process RSS ranges from **138.67 MB** (640px) to **216.73 MB** (1024px), consuming $<5.5\%$ of the Raspberry Pi 5's available system RAM.
+3. **Thermal & Multi-Core Scaling:** 4-thread execution achieved a $2.61\times$ speedup over single-thread (378.56 ms vs 144.83 ms) with stable p95 latencies ($\le 5\text{ ms}$ variance).
+4. **Architectural Confirmation:** ONNX Runtime FP32 on Raspberry Pi 5 satisfies all edge deployment criteria without requiring aggressive INT8 quantization for real-time throughput. INT8 remains an optional optimization for memory footprint reduction.
 
 ---
 
