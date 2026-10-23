@@ -1,0 +1,52 @@
+{
+  "timestamp": "2026-10-23T09:46:08.350728+00:00",
+  "platform": {
+    "system": "Linux",
+    "machine": "aarch64",
+    "processor": "",
+    "python_version": "3.13.5",
+    "cpu_count": 4
+  },
+  "config": {
+    "imgsz": 1024,
+    "runs": 100,
+    "warmup": 10,
+    "threads": 4
+  },
+  "benchmarks": [
+    {
+      "engine": "ONNX Runtime (CPU, threads=1)",
+      "format": "onnx",
+      "precision": "fp32",
+      "model": "best.onnx",
+      "device": "cpu",
+      "imgsz": 1024,
+      "threads": 1,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 1029.6,
+      "inference_median_ms": 1025.17,
+      "inference_p95_ms": 1041.25,
+      "inference_std_ms": 6.95,
+      "fps": 1.0,
+      "peak_rss_mb": 207.3
+    },
+    {
+      "engine": "ONNX Runtime (CPU, threads=4)",
+      "format": "onnx",
+      "precision": "fp32",
+      "model": "best.onnx",
+      "device": "cpu",
+      "imgsz": 1024,
+      "threads": 4,
+      "runs": 100,
+      "warmup": 10,
+      "inference_mean_ms": 515.19,
+      "inference_median_ms": 515.45,
+      "inference_p95_ms": 540.82,
+      "inference_std_ms": 14.33,
+      "fps": 1.9,
+      "peak_rss_mb": 216.73
+    }
+  ]
+}
