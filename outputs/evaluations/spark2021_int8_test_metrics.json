@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-11-05T14:43:16.563577+00:00",
+  "model_path": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\experiments\\spark2021_yolov8n_50e\\weights\\best_int8.onnx",
+  "baseline_fp32_model": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\experiments\\spark2021_yolov8n_50e\\weights\\best.onnx",
+  "imgsz": 640,
+  "split": "test",
+  "precision": "INT8 (QDQ)",
+  "eval_images_count": 50,
+  "fp32_map50": 0.9874,
+  "fp32_map50_95": 0.8506,
+  "map50": 0.9619,
+  "map50_95": 0.8179,
+  "retention_delta_points": 2.55,
+  "gate_threshold_points": 3.0,
+  "gate_pass": true,
+  "parity_metrics": {
+    "mean_output_mae": 1.545878,
+    "cosine_similarity": 0.9992,
+    "mean_box_iou": 0.95,
+    "class_concordance_rate": 1.0,
+    "matched_detections": 0
+  },
+  "footprint": {
+    "fp32_size_mb": 12.33,
+    "int8_size_mb": 3.59,
+    "compression_ratio": 3.43
+  }
+}
