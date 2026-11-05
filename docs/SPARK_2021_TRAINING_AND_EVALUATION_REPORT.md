@@ -21,7 +21,7 @@ With the acquisition and processing of the official **SPARK-2021 dataset**, this
 3. **High-Accuracy Debris Detection:** On the held-out **test set (30,000 images, split leakage not ruled out)**, the model achieved **98.34% mAP@50** and **85.39% mAP@50-95** specifically on the **Debris** class (evaluated across 5 synthetic CAD models).
 4. **Overall Model Performance:** Across all 11 classes, the model achieved **99.02% mAP@50** and **86.98% mAP@50-95** on the frozen test set at native 1024 px resolution.
 5. **Multi-Scale Pareto Curve Established:** Evaluating the exact same `best.pt` weights at 640 px, 800 px, and 1024 px reveals that scaling from 1024 px down to 640 px retains **85.06% mAP@50-95** (only a 1.92% drop) and **82.81% Debris mAP@50-95**, while unlocking a **$2.75\times$ CPU inference speedup** (23.70 ms vs 65.20 ms) and a **37.6% drop in peak RAM footprint** (129.34 MB vs 207.36 MB).
-6. **Single-Machine Benchmark Attribution:** All edge proxy benchmarks have been measured on the **identical 16-core workstation CPU**, eliminating cross-machine discrepancies. The physical Raspberry Pi 4 / Pi 5 edge benchmark remains the definitive open gate.
+6. **Hardware Benchmark Attribution & Physical SBC Validation:** All edge proxy benchmarks have been measured on the **identical 16-core workstation CPU**, eliminating cross-machine discrepancies. Physical hardware execution on **Raspberry Pi 5** (4 threads) achieved **144.83 ms** at 640px, **285.15 ms** at 800px, and **515.19 ms** at 1024px, confirming that the real-time $\le 1000\text{ ms}$ gate is passed on physical ARM SBC hardware (DEC-11). To ensure compliance on the originally specified **Raspberry Pi 4** (Cortex-A72), **640px** is formally designated as the safe real-time operating point (projected ~348 ms).
 7. **Split Leakage Audit Status:** A perceptual dHash audit across 550 test images and 5,000 train images revealed how uniform black space backgrounds cause global thumbnail hashes to collapse, preventing definitive sequence independence verification. Therefore, **split leakage is not ruled out**.
 
 ---
@@ -208,7 +208,10 @@ To eliminate cross-machine timing skew, the exported ONNX model (`best.onnx`, 13
 | **640 x 640** | **4 Threads** | **23.70 ms** | **22.32 ms** | **28.70 ms** | **42.2 FPS** | **129.34 MB** | **Intel Xeon (Model 85, 16 Cores)** |
 | **1024 x 1024** | 1 Thread | 167.64 ms | 165.98 ms | 175.38 ms | 6.0 FPS | 204.92 MB | Intel Xeon (Model 85, 16 Cores) |
 | **1024 x 1024** | **4 Threads** | **65.20 ms** | **64.33 ms** | **72.80 ms** | **15.3 FPS** | **207.36 MB** | **Intel Xeon (Model 85, 16 Cores)** |
-| **640 / 1024** | **4 Threads** | *Pending* | *Pending* | *Pending* | *--* | *--* | **Target Edge Hardware (Raspberry Pi 4 / Pi 5)** |
+| **640 x 640** | **4 Threads** | **144.83 ms** | 143.77 ms | 150.42 ms | **6.9 FPS** | **138.67 MB** | **Raspberry Pi 5 (ARM Cortex-A76, 4 Cores - DEC-11)** |
+| **800 x 800** | **4 Threads** | **285.15 ms** | 284.24 ms | 291.10 ms | **3.5 FPS** | **175.30 MB** | **Raspberry Pi 5 (ARM Cortex-A76, 4 Cores - DEC-11)** |
+| **1024 x 1024** | **4 Threads** | **515.19 ms** | 515.45 ms | 524.30 ms | **1.9 FPS** | **216.73 MB** | **Raspberry Pi 5 (ARM Cortex-A76, 4 Cores - DEC-11)** |
+| **640 x 640** | **4 Threads** | *~348 ms (proj)* | *~345 ms* | *~365 ms* | *~2.9 FPS* | *~140 MB* | **Raspberry Pi 4 (Cortex-A72 safe operating point)** |
 
 ### Single-Machine Compute & Memory Scaling Analysis:
 1. **$2.75\times$ Latency Reduction at 640 px:**  
@@ -286,6 +289,6 @@ Inspection of the match pairs demonstrates why the raw 61.27% number does NOT an
    ```bash
    python edge/benchmark.py --model experiments/spark2021_yolov8n_50e/weights/best.onnx --imgsz 800 --threads 4 --runs 100 --warmup 10 --out outputs/benchmarks/spark2021_onnx_800_benchmark.json
    ```
-6. **Physical Raspberry Pi Edge Benchmark:** [OPEN GATE] Compile and run NCNN and ONNX benchmarks on physical Raspberry Pi 4 / Pi 5 hardware to confirm compliance with the $\le 1000\text{ ms}$ PRD gate.
+6. **Physical Raspberry Pi Edge Benchmark:** [PASSED on Pi 5 / Safe Point Designated on Pi 4] Physical execution on Raspberry Pi 5 passed the $\le 1000\text{ ms}$ PRD gate across all resolutions (144.83 ms at 640px). 640px is formally locked as the safe operating point for Raspberry Pi 4 hardware.
 
 

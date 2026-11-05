@@ -77,13 +77,13 @@ Synthetic satellite imagery (SPARK, SwissCube) exhibits clean rendering artifact
 
 ---
 
-## 6. Stage 3 Orbit Propagation & Conjunction Distance Estimation
+## 6. Stage 3 Orbit Propagation & Independent Catalog Awareness (DEC-05)
 
 ### Architecture & Mechanics
 
-An independent orbital propagation pipeline (`src/data/tle_pipeline.py`) operates as a decoupled catalog layer alongside the vision detector.
+An independent orbital propagation pipeline (src/data/tle_pipeline.py) operates as a decoupled catalog layer alongside the vision detector.
 
-```
+`
 +---------------------------------------+      +------------------------------------------+
 |       Optical Vision Subsystem        |      |   Independent Orbital Catalog Subsystem  |
 |  YOLOv8 Detection (BBox + Class)      |      |   Live CelesTrak TLEs (Active Catalog)   |
@@ -95,22 +95,21 @@ An independent orbital propagation pipeline (`src/data/tle_pipeline.py`) operate
                    +---------> [ NORAD Lookup ] -------------------> 3D Geocentric XYZ (km)
                                      |                                       |
                    +-----------------+-------------------+                   v
-                   |                                     |           Euclidean Distance
-                   v                                     v           & Conjunction Risk
-          Known Spacecraft Class                   Debris Class
-          (e.g., AcrimSat, Sentinel-6)             (UNCATALOGED)
+                   |                                     |           Catalog Ephemeris
+                   v                                     v           Overlay (DEC-05)
+          Known Spacecraft Class                Debris / CubeSat
+          (e.g., AcrimSat, Sentinel-6)          (UNCATALOGED)
                    |                                     |
                    v                                     v
-          Catalog ID Resolved                      NO NORAD ID Exists
-          SGP4 Position Calculated                 SGP4 Propagation Unsupported
-```
+          Catalog ID Resolved                   NO Fixed NORAD ID
+          SGP4 Position Calculated              SGP4 Propagation Unsupported
+`
 
 ### Decisions
 
 1. **Decoupled Catalog Architecture:** The vision detector cannot deterministically resolve orbital ephemeris from a 2D bounding box alone. The TLE module is an **independent catalog layer** that maps identified spacecraft models to candidate NORAD IDs.
-2. **Uncataloged Space Debris Limitation:** **Synthetic space debris has NO catalog ID in CelesTrak.** The TLE layer explicitly cannot propagate or predict orbits for uncataloged debris fragments without prior radar or multi-station optical state vector estimation.
-3. **SPARK-2021 Class Mapping:** Updated the catalog mapping from deprecated Phase 1 classes to active SPARK-2021 spacecraft assets (`AcrimSat`: 26032, `Aquarius`: 37673, `Aura`: 28376, `Calipso`: 29108, `Cloudsat`: 29107, `CubeSat`: 25544 proxy, `Jason`: 26997, `Sentinel-6`: 46984, `Terra`: 25994, `TRMM`: 25063).
-
+2. **Uncataloged Space Debris & CubeSat Limitation:** **Synthetic space debris and generic CubeSats have NO deterministic catalog IDs in CelesTrak.** The TLE layer explicitly cannot propagate or predict orbits for uncataloged debris fragments or multi-manifest CubeSats without prior radar or multi-station optical state vector estimation.
+3. **SPARK-2021 Class Mapping:** Updated the catalog mapping from deprecated Phase 1 classes to active SPARK-2021 spacecraft assets (AcrimSat: 26032, Aquarius: 37673, Aura: 28376, Calipso: 29108, Cloudsat: 29107, CubeSat: None / uncataloged, Jason: 26997, Sentinel-6: 46984, Terra: 25994, TRMM: 25063, Debris: None / uncataloged).
 ---
 
 ## 7. Edge Export Pipeline & Optimization
