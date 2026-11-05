@@ -11,7 +11,7 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 - [x] **Phase 3: Baseline Edge Validation & Multi-Scale Single-Machine Benchmarking** - Upgraded [edge/benchmark.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/edge/benchmark.py) (≥100 runs, peak RSS), single-machine 16-Core Xeon CPU benchmarks at 640px and 1024px, and Pi 4 / Pi 5 testbed preparation.
 - [x] **Phase 4: SPARK-2021 Model Training & Optimization** - Execute 50-epoch YOLOv8-Nano deep training on 32GB Quadro GV100 at 1024px resolution across 180,000 augmented images.
 - [x] **Phase 5: Multi-Scale Evaluation, Error Analysis & Model Freeze** - Multi-scale test evaluation (640px, 800px, 1024px), confusion matrix, 5-CAD synthetic debris analysis, and model freeze.
-- [ ] **Phase 6: Edge Quantization & INT8 Accuracy Retention** - Static INT8 post-training quantization (ONNX Runtime & NCNN) and evaluate accuracy retention loss on test split.
+- [x] **Phase 6: Edge Quantization & INT8 Accuracy Retention** - Static INT8 post-training quantization (ONNX Runtime & NCNN) and evaluate accuracy retention loss on test split.
 - [ ] **Phase 7: Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis** - Full edge benchmark matrix on physical Raspberry Pi 4 and Pi 5, runtime decision lock ([DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn)), and tradeoff charts.
 - [ ] **Phase 8: End-to-End Inference CLI, Demo & Astrodynamics Layer** - Multi-backend [src/infer.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/infer.py), interactive demo application, independent SGP4 awareness panel ([DEC-05](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#dec-05-tle-independent-catalog-layer--uncataloged-debris-limitation)), and real-image collection.
 - [ ] **Phase 9: Real-Image Validation, Final Reporting & Project Delivery** - Qualitative synthetic-to-real domain-gap report, FPGA feasibility note, slides, fallback video, and `v1.0` tag.
@@ -127,10 +127,11 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 2. NCNN INT8 quantization pipeline is built using NCNN calibration tools (`ncnn2table`).
 3. [src/eval.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/eval.py) evaluates FP32 vs INT8 models on the held-out test split, confirming retention loss is $\le 3\text{ points}$ mAP@0.5 (or documenting fallbacks).
 
-**Plans**: 2 plans
+**Plans**: 3 plans (Complete)
 
-- [ ] 06-01: Build INT8 calibration and quantization pipeline for ONNX Runtime and NCNN.
-- [ ] 06-02: Measure test-split accuracy retention between FP32 and INT8 exports using [src/eval.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/eval.py).
+- [x] 06-01: Qualify Raspberry Pi hardware gates, cleanse astrodynamics logic, and disclose data leakage caveats.
+- [x] 06-02: Execute post-training static INT8 quantization via onnxruntime and evaluate accuracy retention on test split.
+- [x] 06-03: Implement multi-backend CLI inference tool (src/infer.py) supporting PyTorch and ONNX Runtime.
 
 ---
 
