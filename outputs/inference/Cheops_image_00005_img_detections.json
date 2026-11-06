@@ -6,7 +6,7 @@
   "imgsz": 640,
   "conf_threshold": 0.25,
   "iou_threshold": 0.45,
-  "inference_latency_ms": 76.56,
+  "inference_latency_ms": 129.58,
   "num_detections": 1,
   "detections": [
     {

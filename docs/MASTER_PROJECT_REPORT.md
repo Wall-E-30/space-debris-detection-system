@@ -32,7 +32,7 @@ Low Earth Orbit (LEO) is experiencing exponential congestion driven by mega-cons
 ### 2.2 Problem Statement #05 Mandate & Physical Constraints
 Deploying computer vision models into the space domain imposes severe operational constraints:
 1. **Severe Power & Thermal Envelope:** Spaceborne computers and CubeSat payloads operate under strict power limits ($\le 5\text{W} - 15\text{W}$) and vacuum thermal dissipation constraints. High-end desktop GPUs cannot survive or operate within these budgets.
-2. **Strict Real-Time Latency Gate:** The team-defined operational requirement targets inference latency **$\le 1000\text{ ms}$ (1 second)** on real edge SBC hardware to allow on-board flight software to process camera frames and execute avoidance heuristics. (Validated on Raspberry Pi 5; physical Raspberry Pi 4 gate remains open).
+2. **Strict Real-Time Latency Gate:** The team-defined operational requirement targets inference latency **$\le 1000\text{ ms}$ (1 second)** on real edge SBC hardware to allow on-board flight software to process camera frames and execute avoidance heuristics. (Validated on Raspberry Pi 5; physical Raspberry Pi 4 gate remains open). The 640x640 px resolution is officially designated as the safe operating point projected to meet the $\le 1000\text{ ms}$ latency gate on the Raspberry Pi 5.
 3. **Severe Memory & Model Footprint Limits:** Embedded flash storage and RAM on space-grade rad-hard computers are constrained; models must maintain a peak memory footprint under $500\text{ MB}$ and binary sizes $\le 15\text{ MB}$ (with INT8 quantization targeting $\le 4\text{ MB}$).
 4. **The Optical Domain Gap:** Synthetic space imagery features uniform solid black backgrounds ($>95\%$ zero pixels), extreme contrast, intense solar glint, absence of atmospheric scatter, and significant optical sensor read noise.
 
@@ -183,6 +183,8 @@ All benchmarks execute the rigorous research protocol via [edge/benchmark.py](fi
        └──────────────────────────────────────────────────────────────► Pi 5 Latency (ms)
             100 ms          200 ms          300 ms          400 ms          500 ms
 ```
+
+The 640x640 px resolution is officially designated as the safe operating point projected to meet the $\le 1000\text{ ms}$ latency gate on the Raspberry Pi 5 (delivering 144.83 ms mean latency and 6.90 FPS throughput under 4 CPU threads).
 
 ---
 

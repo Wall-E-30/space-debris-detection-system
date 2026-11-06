@@ -20,6 +20,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
+# Safe fallback / dynamic import for ONNX Runtime
+try:
+    import onnxruntime as ort
+except ImportError:
+    ort = None
+
 # Class names mapping matching configs/spark2021.yaml (IDs 0..10)
 CLASS_NAMES: List[str] = [
     "AcrimSat",
@@ -159,6 +165,162 @@ def nms(boxes: np.ndarray, scores: np.ndarray, iou_threshold: float = 0.45) -> L
     return keep
 
 
+def postprocess(
+    raw_output: np.ndarray,
+    orig_shape: Tuple[int, int],
+    scale_r: float = 1.0,
+    pad: Tuple[int, int] = (0, 0),
+    conf: float = 0.25,
+    iou: float = 0.45,
+) -> List[Dict[str, Any]]:
+    """
+    Post-process raw detector output into bounding boxes, class labels, and confidences.
+
+    Args:
+        raw_output: Model prediction tensor (e.g. shape [1, 15, 8400] or [8400, 15]).
+        orig_shape: Original image dimensions (height, width).
+        scale_r: Aspect ratio scaling factor from letterbox.
+        pad: (dw, dh) padding offsets in pixels from letterbox.
+        conf: Confidence score threshold.
+        iou: NMS IoU threshold.
+
+    Returns:
+        List of detection dictionaries containing class_id, class_name, confidence, and bbox.
+    """
+    orig_h, orig_w = orig_shape
+    dw, dh = pad
+
+    # Normalize prediction layout to [anchors, channels]
+    if raw_output.ndim == 3 and raw_output.shape[1] == 15:
+        preds = np.transpose(raw_output[0], (1, 0))  # [8400, 15]
+    elif raw_output.ndim == 3 and raw_output.shape[2] == 15:
+        preds = raw_output[0]  # [8400, 15]
+    elif raw_output.ndim == 2 and raw_output.shape[1] == 15:
+        preds = raw_output
+    else:
+        # Fallback transpose if shape is [1, num_channels, num_anchors]
+        preds = np.transpose(raw_output[0], (1, 0)) if raw_output.ndim == 3 else raw_output
+
+    # Box coordinates (columns 0..3: cx, cy, w, h in canvas space)
+    boxes_cxcywh = preds[:, :4]
+    # Class probability scores (columns 4..14: 11 classes)
+    cls_scores = preds[:, 4:]
+
+    max_scores = np.max(cls_scores, axis=1)
+    class_ids = np.argmax(cls_scores, axis=1)
+
+    # Filter by confidence threshold
+    score_mask = max_scores >= conf
+    if not np.any(score_mask):
+        return []
+
+    filtered_boxes = boxes_cxcywh[score_mask]
+    filtered_scores = max_scores[score_mask]
+    filtered_classes = class_ids[score_mask]
+
+    # Convert cxcywh -> xyxy in padded canvas coordinates
+    canvas_xyxy = xywh2xyxy(filtered_boxes)
+
+    # Apply pure-NumPy NMS
+    keep_indices = nms(canvas_xyxy, filtered_scores, iou_threshold=iou)
+    if not keep_indices:
+        return []
+
+    final_boxes = canvas_xyxy[keep_indices]
+    final_scores = filtered_scores[keep_indices]
+    final_classes = filtered_classes[keep_indices]
+
+    # Unpad and scale coordinates back to original image dimensions
+    detections: List[Dict[str, Any]] = []
+    for b, s, c in zip(final_boxes, final_scores, final_classes):
+        x1 = (b[0] - dw) / scale_r
+        y1 = (b[1] - dh) / scale_r
+        x2 = (b[2] - dw) / scale_r
+        y2 = (b[3] - dh) / scale_r
+
+        # Clip coordinates to image boundary
+        x1 = max(0.0, min(float(orig_w), float(x1)))
+        y1 = max(0.0, min(float(orig_h), float(y1)))
+        x2 = max(0.0, min(float(orig_w), float(x2)))
+        y2 = max(0.0, min(float(orig_h), float(y2)))
+
+        cls_id = int(c)
+        cls_name = CLASS_NAMES[cls_id] if 0 <= cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
+
+        detections.append({
+            "class_id": cls_id,
+            "class_name": cls_name,
+            "confidence": float(round(float(s), 4)),
+            "bbox": [round(x1, 2), round(y1, 2), round(x2, 2), round(y2, 2)],
+        })
+
+    return detections
+
+
+def init_onnx_session(weights_path: Union[str, Path], device: str = "cpu") -> Any:
+    """
+    Initialize an ONNX Runtime InferenceSession with appropriate execution provider.
+
+    Args:
+        weights_path: Path to ONNX model weights (.onnx).
+        device: Target hardware device ('cpu', 'cuda', '0').
+
+    Returns:
+        ort.InferenceSession instance.
+    """
+    if ort is None:
+        raise ImportError(
+            "onnxruntime is not installed. Please install onnxruntime to use the ONNX backend."
+        )
+
+    providers = ["CPUExecutionProvider"]
+    if str(device).lower() in ("cuda", "0", "gpu"):
+        if hasattr(ort, "get_available_providers") and "CUDAExecutionProvider" in ort.get_available_providers():
+            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+
+    return ort.InferenceSession(str(weights_path), providers=providers)
+
+
+def infer_onnx(
+    session: Any,
+    tensor: np.ndarray,
+    orig_shape: Optional[Tuple[int, int]] = None,
+    scale_r: float = 1.0,
+    pad: Tuple[int, int] = (0, 0),
+    conf: float = 0.25,
+    iou: float = 0.45,
+) -> List[Dict[str, Any]]:
+    """
+    Run forward pass on an initialized ONNX Runtime session and route the NumPy
+    output directly into the postprocess() function.
+
+    Args:
+        session: Initialized ort.InferenceSession.
+        tensor: Preprocessed NCHW image blob [1, 3, H, W] (float32).
+        orig_shape: Optional tuple of original image (height, width). Defaults to tensor (H, W).
+        scale_r: Aspect ratio scaling factor from letterbox.
+        pad: (dw, dh) padding offsets in pixels from letterbox.
+        conf: Confidence score threshold.
+        iou: NMS IoU threshold.
+
+    Returns:
+        List of detection dictionaries from postprocess().
+    """
+    input_name = session.get_inputs()[0].name
+    outputs = session.run(None, {input_name: tensor})
+    raw_output = outputs[0]
+
+    target_shape = orig_shape if orig_shape is not None else (tensor.shape[2], tensor.shape[3])
+    return postprocess(
+        raw_output=raw_output,
+        orig_shape=target_shape,
+        scale_r=scale_r,
+        pad=pad,
+        conf=conf,
+        iou=iou,
+    )
+
+
 def run_pytorch_inference(
     weights: str,
     image_path: str,
@@ -247,17 +409,8 @@ def run_onnx_inference(
         detections: List of detection dictionaries.
         latency_ms: Inference execution time in milliseconds.
     """
-    import onnxruntime as ort
-
     if session is None:
-        providers = ["CPUExecutionProvider"]
-        if device.lower() in ("cuda", "0", "gpu"):
-            if "CUDAExecutionProvider" in ort.get_available_providers():
-                providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        session = ort.InferenceSession(weights, providers=providers)
-
-    input_node = session.get_inputs()[0]
-    input_name = input_node.name
+        session = init_onnx_session(weights, device=device)
 
     # Read original image
     raw_img = cv2.imread(image_path)
@@ -268,75 +421,19 @@ def run_onnx_inference(
     # Preprocessing with letterbox
     blob, scale_r, (dw, dh) = letterbox(raw_img, new_shape=(imgsz, imgsz))
 
-    # Inference forward pass
+    # Inference forward pass via infer_onnx routing into postprocess
     t0 = time.perf_counter()
-    outputs = session.run(None, {input_name: blob})
+    detections = infer_onnx(
+        session=session,
+        tensor=blob,
+        orig_shape=(orig_h, orig_w),
+        scale_r=scale_r,
+        pad=(dw, dh),
+        conf=conf,
+        iou=iou,
+    )
     t1 = time.perf_counter()
     latency_ms = (t1 - t0) * 1000.0
-
-    raw_output = outputs[0]  # Expected shape [1, 15, 8400] for YOLOv8 (11 classes + 4 coords)
-    if raw_output.ndim == 3 and raw_output.shape[1] == 15:
-        preds = np.transpose(raw_output[0], (1, 0))  # [8400, 15]
-    elif raw_output.ndim == 3 and raw_output.shape[2] == 15:
-        preds = raw_output[0]  # [8400, 15]
-    else:
-        # Fallback transpose if shape is [1, num_channels, num_anchors]
-        preds = np.transpose(raw_output[0], (1, 0))
-
-    # Box coordinates (columns 0..3: cx, cy, w, h in canvas space)
-    boxes_cxcywh = preds[:, :4]
-    # Class probability scores (columns 4..14: 11 classes)
-    cls_scores = preds[:, 4:]
-
-    max_scores = np.max(cls_scores, axis=1)
-    class_ids = np.argmax(cls_scores, axis=1)
-
-    # Filter by confidence threshold
-    score_mask = max_scores >= conf
-    if not np.any(score_mask):
-        return [], latency_ms
-
-    filtered_boxes = boxes_cxcywh[score_mask]
-    filtered_scores = max_scores[score_mask]
-    filtered_classes = class_ids[score_mask]
-
-    # Convert cxcywh -> xyxy in padded canvas coordinates
-    canvas_xyxy = xywh2xyxy(filtered_boxes)
-
-    # Apply pure-NumPy NMS
-    keep_indices = nms(canvas_xyxy, filtered_scores, iou_threshold=iou)
-    if not keep_indices:
-        return [], latency_ms
-
-    final_boxes = canvas_xyxy[keep_indices]
-    final_scores = filtered_scores[keep_indices]
-    final_classes = filtered_classes[keep_indices]
-
-    # Unpad and scale coordinates back to original image dimensions
-    # x_orig = (x_canvas - dw) / scale_r
-    # y_orig = (y_canvas - dh) / scale_r
-    detections: List[Dict[str, Any]] = []
-    for b, s, c in zip(final_boxes, final_scores, final_classes):
-        x1 = (b[0] - dw) / scale_r
-        y1 = (b[1] - dh) / scale_r
-        x2 = (b[2] - dw) / scale_r
-        y2 = (b[3] - dh) / scale_r
-
-        # Clip coordinates to image boundary
-        x1 = max(0.0, min(float(orig_w), float(x1)))
-        y1 = max(0.0, min(float(orig_h), float(y1)))
-        x2 = max(0.0, min(float(orig_w), float(x2)))
-        y2 = max(0.0, min(float(orig_h), float(y2)))
-
-        cls_id = int(c)
-        cls_name = CLASS_NAMES[cls_id] if 0 <= cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
-
-        detections.append({
-            "class_id": cls_id,
-            "class_name": cls_name,
-            "confidence": float(round(float(s), 4)),
-            "bbox": [round(x1, 2), round(y1, 2), round(x2, 2), round(y2, 2)],
-        })
 
     return detections, latency_ms
 
@@ -467,20 +564,23 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine backend
+    # Determine backend & detect if weights ends with .onnx
     weights_path = Path(args.weights)
     if not weights_path.exists():
         raise FileNotFoundError(f"Model weights not found at: {weights_path}")
 
+    weights_str = str(weights_path).lower()
+    is_onnx = weights_str.endswith(".onnx")
+    is_pt = weights_str.endswith((".pt", ".pth"))
+
     backend = args.backend
     if backend == "auto":
-        suffix = weights_path.suffix.lower()
-        if suffix in (".pt", ".pth"):
-            backend = "pytorch"
-        elif suffix == ".onnx":
+        if is_onnx:
             backend = "onnx"
+        elif is_pt:
+            backend = "pytorch"
         else:
-            raise ValueError(f"Cannot auto-detect backend for weights file extension: {suffix}")
+            raise ValueError(f"Cannot auto-detect backend for weights file extension: {weights_path.suffix}")
 
     print("=" * 65)
     print("  EDGE-DEPLOYABLE SPACE DEBRIS & SPACECRAFT INFERENCE")
@@ -508,16 +608,11 @@ def main():
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Initialize shared model/session for batch efficiency
+    # Initialize shared session or model for batch efficiency
     shared_session = None
     shared_model = None
-    if backend == "onnx":
-        import onnxruntime as ort
-        providers = ["CPUExecutionProvider"]
-        if args.device.lower() in ("cuda", "0", "gpu"):
-            if "CUDAExecutionProvider" in ort.get_available_providers():
-                providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        shared_session = ort.InferenceSession(str(weights_path), providers=providers)
+    if backend == "onnx" or is_onnx:
+        shared_session = init_onnx_session(weights_path, device=args.device)
     elif backend == "pytorch":
         from ultralytics import YOLO
         shared_model = YOLO(str(weights_path))
@@ -608,4 +703,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
