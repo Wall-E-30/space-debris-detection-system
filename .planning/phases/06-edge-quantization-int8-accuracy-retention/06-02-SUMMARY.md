@@ -33,3 +33,4 @@
 - `best_int8.onnx`: Exists, size = 3.59 MB (< 6.0 MB), valid QDQ INT8 graph.
 - `outputs/evaluations/spark2021_int8_test_metrics.json`: Retention delta = 2.55 points <= 3.0 points gate (`PASS`).
 - Automated one-liner verified clean execution.
+

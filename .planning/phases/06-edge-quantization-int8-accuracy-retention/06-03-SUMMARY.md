@@ -43,3 +43,4 @@
 - End-to-end execution on test frame `data/processed/spark/images/test/Cheops_image_00005_img.jpg`:
   - Output images: `outputs/inference/Cheops_image_00005_img_annotated.jpg` and `outputs/inference/Cheops_image_00005_img.jpg`.
   - Output JSON: `outputs/inference/Cheops_image_00005_img.json` and `outputs/inference/Cheops_image_00005_img_detections.json`.
+

@@ -1,0 +1,25 @@
+{
+  "image": "Cheops_image_00005_img.jpg",
+  "source_path": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\data\\processed\\spark\\images\\test\\Cheops_image_00005_img.jpg",
+  "backend": "onnx",
+  "weights": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\experiments\\spark2021_yolov8n_50e\\weights\\best.onnx",
+  "imgsz": 640,
+  "conf_threshold": 0.25,
+  "iou_threshold": 0.45,
+  "inference_latency_ms": 76.56,
+  "num_detections": 1,
+  "detections": [
+    {
+      "class_id": 4,
+      "class_name": "Cloudsat",
+      "confidence": 0.7601,
+      "bbox": [
+        522.19,
+        517.33,
+        777.59,
+        745.24
+      ]
+    }
+  ],
+  "annotated_image": "C:\\Users\\Sharanya Nagar\\Desktop\\ISRO_Hardware\\space-debris-detection-system\\outputs\\inference\\Cheops_image_00005_img_annotated.jpg"
+}
