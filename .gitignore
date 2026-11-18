@@ -226,12 +226,10 @@ exploration/
 
 # Training artifacts & model weights
 runs/
+*.zip
+notebooks/*.pt
 # experiments/
 # *.pt
 # *.bin
 # *.param
 # *.onnx
-# *.zip
-
-# Cached ephemeris and temporary downloads
-gp.php
