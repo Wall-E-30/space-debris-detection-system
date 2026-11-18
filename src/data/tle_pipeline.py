@@ -3,7 +3,7 @@ from skyfield.api import load
 import numpy as np
 
 class OrbitalTracker:
-    def __init__(self):
+    def __init__(self, tle_source=None):
         print("[INFO] Initializing Orbital Tracker...")
         self.ts = load.timescale()
         
@@ -26,10 +26,15 @@ class OrbitalTracker:
             "Debris": None,         # UNCATALOGED: SGP4 propagation unsupported
         }
         
-        # 2. Fetch Active Satellite TLEs from CelesTrak
-        print("[INFO] Fetching TLEs from CelesTrak...")
+        # 2. Fetch Active Satellite TLEs from CelesTrak (with offline fallback)
         active_url = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle'
-        self.satellites = load.tle_file(active_url)
+        target_source = tle_source if tle_source else active_url
+        print(f"[INFO] Loading TLEs from {target_source}...")
+        try:
+            self.satellites = load.tle_file(target_source)
+        except Exception as e:
+            print(f"[WARN] Failed to load from {target_source}: {e}. Falling back to local offline 'gp.php'...")
+            self.satellites = load.tle_file('gp.php')
         
         # Build a fast-lookup dictionary by NORAD ID
         self.catalog = {sat.model.satnum: sat for sat in self.satellites}
@@ -41,7 +46,7 @@ class OrbitalTracker:
         and calculates its XYZ coordinates in km if it is a cataloged asset.
         """
         # Default to "now" if no timestamp is provided
-        t = time_utc if time_utc else self.ts.now()
+        t = time_utc if time_utc is not None else self.ts.now()
         
         norad_id = self.class_to_norad.get(detected_class)
         if detected_class in ["Debris", "CubeSat"] or norad_id is None:
