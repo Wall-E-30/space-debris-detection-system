@@ -1,13 +1,14 @@
-ultralytics
-torch
-torchvision
-opencv-python
-numpy
-matplotlib
-pyyaml
-onnx
-onnxruntime
-tensorboard
-psutil
-skyfield
-ncnn
+# Pinned host dependencies for training, evaluation, and edge export
+ultralytics==8.4.120
+torch==2.5.1
+torchvision==0.20.1
+opencv-python>=4.8.0,<=5.0.0.93
+numpy>=1.24.0,<=2.2.6
+matplotlib==3.10.9
+pyyaml==6.0.3
+onnx==1.22.0
+onnxruntime==1.23.2
+tensorboard>=2.14.0
+psutil==7.2.2
+skyfield==1.55
+ncnn>=1.0.20240101

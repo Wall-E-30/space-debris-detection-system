@@ -1,3 +1,16 @@
+"""
+DEPRECATED / ARCHIVED SCRIPT
+----------------------------
+Superseded by:
+  - scripts/convert_spark2021_to_yolo.py
+  - src/data/split_dataset.py
+
+This script was an early prototype for converting raw SwissCube BOP format
+labels to YOLO annotations. It uses hardcoded image dimensions (1024x1024)
+and assumes a single 'satellite' class (class ID 0).
+Retained strictly for historical reference.
+"""
+
 import os
 import json
 import shutil

@@ -53,13 +53,14 @@ ENV PATH="/opt/venv/bin:$PATH" \
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-# Copy application source code, configurations, and cached TLE catalog
+# Copy application source code, configurations, data catalog, and frozen edge model weights
 COPY src/ /app/src/
 COPY configs/ /app/configs/
 COPY edge/ /app/edge/
 COPY tests/ /app/tests/
 COPY pytest.ini /app/
-COPY gp.php /app/
+COPY data/tle/ /app/data/tle/
+COPY experiments/spark2021_yolov8n_50e/weights/best_int8.onnx /app/weights/best_int8.onnx
 
 # Set ownership to unprivileged user
 RUN chown -R appuser:appuser /app
@@ -71,4 +72,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 
 # Default entrypoint for CLI inference
 ENTRYPOINT ["python", "src/infer.py"]
-CMD ["--help"]
+CMD ["--weights", "weights/best_int8.onnx", "--help"]

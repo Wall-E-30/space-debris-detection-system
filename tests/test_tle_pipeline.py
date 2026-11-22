@@ -19,10 +19,10 @@ from src.data.tle_pipeline import OrbitalTracker
 @pytest.fixture(scope="module")
 def tracker():
     """Module-level OrbitalTracker fixture using local offline cached TLEs."""
-    gp_path = Path("gp.php")
-    if not gp_path.exists():
-        pytest.skip("gp.php local TLE cache not found for testing")
-    return OrbitalTracker(tle_source=str(gp_path))
+    tle_path = Path("data/tle/celestrak_active.tle")
+    if not tle_path.exists():
+        pytest.skip("data/tle/celestrak_active.tle local TLE cache not found for testing")
+    return OrbitalTracker(tle_source=str(tle_path))
 
 
 class TestCatalogMapping:
@@ -140,11 +140,11 @@ class TestOfflineFallback:
     """Tests ensuring offline operation and fallback resilience."""
 
     def test_explicit_local_tle_load(self):
-        """Verify OrbitalTracker loads directly from local gp.php without network."""
-        local_tracker = OrbitalTracker(tle_source="gp.php")
-        assert len(local_tracker.catalog) > 0, "Failed to load satellites from local gp.php"
+        """Verify OrbitalTracker loads directly from local tracked TLE cache without network."""
+        local_tracker = OrbitalTracker(tle_source="data/tle/celestrak_active.tle")
+        assert len(local_tracker.catalog) > 0, "Failed to load satellites from local TLE cache"
 
     def test_network_failure_fallback_to_local(self):
-        """Verify invalid URL/source automatically triggers fallback to local gp.php."""
+        """Verify invalid URL/source automatically triggers fallback to local default cache."""
         fallback_tracker = OrbitalTracker(tle_source="http://invalid.celestrak.offline.test/bad_url.tle")
-        assert len(fallback_tracker.catalog) > 0, "Fallback to local gp.php did not succeed"
+        assert len(fallback_tracker.catalog) > 0, "Fallback to local default cache did not succeed"

@@ -65,7 +65,13 @@ class OrbitalTracker:
             print(f"[INFO] Fetching fresh TLEs from CelesTrak: {active_url}")
 
         try:
-            self.satellites = load.tle_file(target_source)
+            import socket
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(10.0)  # P3: 10-second network timeout gate
+            try:
+                self.satellites = load.tle_file(target_source)
+            finally:
+                socket.setdefaulttimeout(old_timeout)
         except Exception as exc:
             if target_source != str(default_cache) and default_cache.exists():
                 print(f"[WARN] Remote fetch failed ({exc}). Falling back to local cache: {default_cache}")
@@ -82,8 +88,8 @@ class OrbitalTracker:
         Takes a YOLO detected class string, looks up its TLE, 
         and calculates its XYZ coordinates in km if it is a cataloged asset.
         """
-        # Default to "now" if no timestamp is provided
-        t = time_utc if time_utc else self.ts.now()
+        # Default to "now" if no timestamp is provided (P0: explicit None check for Skyfield scalar Time)
+        t = time_utc if time_utc is not None else self.ts.now()
 
         norad_id = self.class_to_norad.get(detected_class)
         if detected_class in ["Debris", "CubeSat"] or norad_id is None:

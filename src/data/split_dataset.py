@@ -149,6 +149,7 @@ def load_spark_csv(data_dir: Path):
                     "box": box,
                     "class_name": cls_name,
                     "uid": f"{csv_split}_{cls_name}_{Path(img_name).stem}",
+                    "coord_format": "row_col",  # SPARK-2021 uses row/column ordering [r_min, c_min, r_max, c_max]
                 })
 
     class_names = sorted(class_set)
@@ -240,6 +241,7 @@ def load_swisscube(data_dir: Path):
                         # seq_000002, seq_000003 etc.). Sequence folder name
                         # makes this globally unique.
                         "uid": f"{split}_{seq_dir.name}_{img_path.stem}",
+                        "coord_format": "xyxy",  # BOP bounding box converted to [x1, y1, x2, y2]
                     })
 
     return records, ["satellite"]
@@ -322,11 +324,23 @@ def stratified_split(records, ratios, seed):
 # YOLO conversion + file writing
 # ---------------------------------------------------------------------------
 
-def box_to_yolo_line(box, img_w, img_h, class_id):
-    """Convert pixel [x1,y1,x2,y2] box to normalized YOLO 'cid cx cy w h' line."""
-    x1, y1, x2, y2 = box
-    x1, x2 = sorted([x1, x2])
-    y1, y2 = sorted([y1, y2])
+def box_to_yolo_line(box, img_w, img_h, class_id, coord_format: str = "xyxy"):
+    """
+    Convert pixel box to normalized YOLO 'cid cx cy w h' line.
+
+    Supports coordinate formats:
+      - 'xyxy' / 'standard': [x1, y1, x2, y2] pixel coordinates
+      - 'row_col' / 'rcrc': [r_min, c_min, r_max, c_max] pixel coordinates (SPARK-2021)
+    """
+    if coord_format in ("row_col", "rcrc"):
+        r1, c1, r2, c2 = box
+        y1, y2 = sorted([r1, r2])
+        x1, x2 = sorted([c1, c2])
+    else:
+        x1, y1, x2, y2 = box
+        x1, x2 = sorted([x1, x2])
+        y1, y2 = sorted([y1, y2])
+
     cx = ((x1 + x2) / 2) / img_w
     cy = ((y1 + y2) / 2) / img_h
     w = (x2 - x1) / img_w
@@ -336,7 +350,7 @@ def box_to_yolo_line(box, img_w, img_h, class_id):
     return f"{class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}"
 
 
-def convert_and_write(splits, class_to_id, out_dir: Path, use_link: bool, dry_run: bool):
+def convert_and_write(splits, class_to_id, out_dir: Path, use_link: bool, dry_run: bool, coord_format: str = "auto"):
     can_symlink = use_link and platform.system() != "Windows"
     if use_link and not can_symlink:
         print("[info] --link requested but running on Windows — falling back to copy "
@@ -392,7 +406,8 @@ def convert_and_write(splits, class_to_id, out_dir: Path, use_link: bool, dry_ru
             else:
                 shutil.copy2(src_path, dest_img)
 
-            line = box_to_yolo_line(box, img_w, img_h, class_id)
+            rec_format = coord_format if coord_format != "auto" else rec.get("coord_format", "xyxy")
+            line = box_to_yolo_line(box, img_w, img_h, class_id, coord_format=rec_format)
             dest_lbl.write_text(line + "\n")
 
     return stats, skipped_unreadable, skipped_no_box
@@ -458,6 +473,10 @@ def main():
     parser.add_argument("--out", required=True, help="Output directory for YOLO-format data")
     parser.add_argument("--format", default="auto",
                         choices=["auto", "spark_csv", "swisscube"])
+    parser.add_argument("--coord-format", default="auto",
+                        choices=["auto", "xyxy", "row_col"],
+                        help="Bounding box coordinate convention: 'auto' (detect from dataset source), "
+                             "'xyxy' ([x1, y1, x2, y2]), or 'row_col' ([r_min, c_min, r_max, c_max] as in SPARK-2021)")
     parser.add_argument("--split", type=float, nargs=3, default=[0.80, 0.15, 0.05],
                         metavar=("TRAIN", "VAL", "TEST"),
                         help="Split ratios, must sum to 1.0 (default: 0.80 0.15 0.05)")
@@ -480,10 +499,11 @@ def main():
         sys.exit(1)
 
     print(f"\n{'='*60}")
-    print(f"  Dataset:  {data_dir}")
-    print(f"  Output:   {out_dir}")
-    print(f"  Split:    train={args.split[0]:.0%} val={args.split[1]:.0%} test={args.split[2]:.0%}")
-    print(f"  Mode:     {'DRY RUN (no files written)' if args.dry_run else 'copy' if not args.link else 'link'}")
+    print(f"  Dataset:      {data_dir}")
+    print(f"  Output:       {out_dir}")
+    print(f"  Coord Format: {args.coord_format}")
+    print(f"  Split:        train={args.split[0]:.0%} val={args.split[1]:.0%} test={args.split[2]:.0%}")
+    print(f"  Mode:         {'DRY RUN (no files written)' if args.dry_run else 'copy' if not args.link else 'link'}")
     print(f"{'='*60}\n")
 
     print("[1/4] Loading dataset annotations …")
@@ -501,7 +521,7 @@ def main():
 
     print("\n[3/4] Converting to YOLO format + writing files …")
     stats, skipped_unreadable, skipped_no_box = convert_and_write(
-        splits, class_to_id, out_dir, args.link, args.dry_run
+        splits, class_to_id, out_dir, args.link, args.dry_run, coord_format=args.coord_format
     )
 
     print("\n[4/4] Writing data.yaml …")

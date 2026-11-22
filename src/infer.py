@@ -56,6 +56,30 @@ PALETTE: List[Tuple[int, int, int]] = [
 ]
 
 
+def load_class_names(data_config: Optional[Union[str, Path]] = None) -> List[str]:
+    """
+    Load class names list from YAML config file or return default CLASS_NAMES.
+    Supports dynamic class configuration across different datasets.
+    """
+    if not data_config:
+        return list(CLASS_NAMES)
+    cfg_p = Path(data_config)
+    if not cfg_p.exists():
+        return list(CLASS_NAMES)
+    try:
+        import yaml
+        with open(cfg_p, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        names = cfg.get("names", {})
+        if isinstance(names, dict):
+            return [names[k] for k in sorted(names.keys(), key=lambda x: int(x) if str(x).isdigit() else x)]
+        elif isinstance(names, list):
+            return [str(x) for x in names]
+    except Exception:
+        pass
+    return list(CLASS_NAMES)
+
+
 def letterbox(
     img: np.ndarray,
     new_shape: Union[int, Tuple[int, int]] = (640, 640),
@@ -171,17 +195,20 @@ def postprocess(
     pad: Tuple[int, int] = (0, 0),
     conf: float = 0.25,
     iou: float = 0.45,
+    class_names: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Post-process raw detector output into bounding boxes, class labels, and confidences.
+    Dynamically routes tensor layout and supports arbitrary class counts.
 
     Args:
-        raw_output: Model prediction tensor (e.g. shape [1, 15, 8400] or [8400, 15]).
+        raw_output: Model prediction tensor (e.g. shape [1, 15, 8400], [1, 8400, 15], or [8400, 15]).
         orig_shape: Original image dimensions (height, width).
         scale_r: Aspect ratio scaling factor from letterbox.
         pad: (dw, dh) padding offsets in pixels from letterbox.
         conf: Confidence score threshold.
         iou: NMS IoU threshold.
+        class_names: Optional list of class names. Defaults to CLASS_NAMES.
 
     Returns:
         List of detection dictionaries containing class_id, class_name, confidence, and bbox.
@@ -189,24 +216,45 @@ def postprocess(
     orig_h, orig_w = orig_shape
     dw, dh = pad
 
-    # Normalize prediction layout to [anchors, channels]
-    if raw_output.ndim == 3 and raw_output.shape[1] == 15:
-        preds = np.transpose(raw_output[0], (1, 0))  # [8400, 15]
-    elif raw_output.ndim == 3 and raw_output.shape[2] == 15:
-        preds = raw_output[0]  # [8400, 15]
-    elif raw_output.ndim == 2 and raw_output.shape[1] == 15:
-        preds = raw_output
+    # Dynamic layout normalization to [anchors, channels]
+    resolved_names = class_names if class_names is not None else CLASS_NAMES
+    expected_channels = len(resolved_names) + 4
+
+    if raw_output.ndim == 3:
+        if raw_output.shape[1] == expected_channels:
+            preds = np.transpose(raw_output[0], (1, 0))  # [anchors, channels]
+        elif raw_output.shape[2] == expected_channels:
+            preds = raw_output[0]  # [anchors, channels]
+        elif raw_output.shape[1] < raw_output.shape[2]:
+            preds = np.transpose(raw_output[0], (1, 0))
+        elif raw_output.shape[2] < raw_output.shape[1]:
+            preds = raw_output[0]
+        else:
+            # Standard YOLO layout: dimension 1 is channels
+            preds = np.transpose(raw_output[0], (1, 0))
+    elif raw_output.ndim == 2:
+        if raw_output.shape[0] == expected_channels and raw_output.shape[1] != expected_channels:
+            preds = np.transpose(raw_output, (1, 0))
+        elif raw_output.shape[1] == expected_channels:
+            preds = raw_output
+        elif raw_output.shape[0] < raw_output.shape[1]:
+            preds = np.transpose(raw_output, (1, 0))
+        else:
+            preds = raw_output
     else:
-        # Fallback transpose if shape is [1, num_channels, num_anchors]
-        preds = np.transpose(raw_output[0], (1, 0)) if raw_output.ndim == 3 else raw_output
+        preds = np.squeeze(raw_output)
 
     # Box coordinates (columns 0..3: cx, cy, w, h in canvas space)
     boxes_cxcywh = preds[:, :4]
-    # Class probability scores (columns 4..14: 11 classes)
+    # Class probability scores (columns 4..: dynamic class channels)
     cls_scores = preds[:, 4:]
 
-    max_scores = np.max(cls_scores, axis=1)
-    class_ids = np.argmax(cls_scores, axis=1)
+    if cls_scores.shape[1] == 1:
+        max_scores = cls_scores[:, 0]
+        class_ids = np.zeros(len(cls_scores), dtype=int)
+    else:
+        max_scores = np.max(cls_scores, axis=1)
+        class_ids = np.argmax(cls_scores, axis=1)
 
     # Filter by confidence threshold
     score_mask = max_scores >= conf
@@ -229,6 +277,8 @@ def postprocess(
     final_scores = filtered_scores[keep_indices]
     final_classes = filtered_classes[keep_indices]
 
+    resolved_names = class_names if class_names is not None else CLASS_NAMES
+
     # Unpad and scale coordinates back to original image dimensions
     detections: List[Dict[str, Any]] = []
     for b, s, c in zip(final_boxes, final_scores, final_classes):
@@ -244,7 +294,7 @@ def postprocess(
         y2 = max(0.0, min(float(orig_h), float(y2)))
 
         cls_id = int(c)
-        cls_name = CLASS_NAMES[cls_id] if 0 <= cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
+        cls_name = resolved_names[cls_id] if 0 <= cls_id < len(resolved_names) else f"class_{cls_id}"
 
         detections.append({
             "class_id": cls_id,
@@ -288,6 +338,7 @@ def infer_onnx(
     pad: Tuple[int, int] = (0, 0),
     conf: float = 0.25,
     iou: float = 0.45,
+    class_names: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Run forward pass on an initialized ONNX Runtime session and route the NumPy
@@ -301,6 +352,7 @@ def infer_onnx(
         pad: (dw, dh) padding offsets in pixels from letterbox.
         conf: Confidence score threshold.
         iou: NMS IoU threshold.
+        class_names: Optional list of class names.
 
     Returns:
         List of detection dictionaries from postprocess().
@@ -317,6 +369,7 @@ def infer_onnx(
         pad=pad,
         conf=conf,
         iou=iou,
+        class_names=class_names,
     )
 
 
@@ -328,6 +381,7 @@ def run_pytorch_inference(
     iou: float = 0.45,
     device: str = "cpu",
     model: Optional[Any] = None,
+    class_names: Optional[List[str]] = None,
 ) -> Tuple[List[Dict[str, Any]], float]:
     """
     Execute PyTorch inference using Ultralytics YOLO engine.
@@ -340,6 +394,7 @@ def run_pytorch_inference(
         iou: NMS IoU threshold.
         device: Execution device ('cpu', 'cuda', '0').
         model: Optional pre-instantiated YOLO model.
+        class_names: Optional custom class names list.
 
     Returns:
         detections: List of detection dictionaries.
@@ -349,6 +404,15 @@ def run_pytorch_inference(
 
     if model is None:
         model = YOLO(weights)
+
+    resolved_names = class_names
+    if resolved_names is None and hasattr(model, "names") and model.names:
+        if isinstance(model.names, dict):
+            resolved_names = [model.names[k] for k in sorted(model.names.keys())]
+        elif isinstance(model.names, list):
+            resolved_names = model.names
+    if resolved_names is None:
+        resolved_names = CLASS_NAMES
 
     t0 = time.perf_counter()
     results = model.predict(
@@ -372,7 +436,7 @@ def run_pytorch_inference(
 
             for b, s, c in zip(boxes_data, scores_data, classes_data):
                 cls_id = int(c)
-                cls_name = CLASS_NAMES[cls_id] if 0 <= cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
+                cls_name = resolved_names[cls_id] if 0 <= cls_id < len(resolved_names) else f"class_{cls_id}"
                 detections.append({
                     "class_id": cls_id,
                     "class_name": cls_name,
@@ -391,6 +455,7 @@ def run_onnx_inference(
     iou: float = 0.45,
     device: str = "cpu",
     session: Optional[Any] = None,
+    class_names: Optional[List[str]] = None,
 ) -> Tuple[List[Dict[str, Any]], float]:
     """
     Execute ONNX Runtime inference supporting both FP32 and INT8 models.
@@ -403,6 +468,7 @@ def run_onnx_inference(
         iou: NMS IoU threshold.
         device: Target device ('cpu', 'cuda', '0').
         session: Optional pre-instantiated ort.InferenceSession.
+        class_names: Optional custom class names list.
 
     Returns:
         detections: List of detection dictionaries.
@@ -430,6 +496,7 @@ def run_onnx_inference(
         pad=(dw, dh),
         conf=conf,
         iou=iou,
+        class_names=class_names,
     )
     t1 = time.perf_counter()
     latency_ms = (t1 - t0) * 1000.0
@@ -555,6 +622,14 @@ def main():
         help="Export detection metadata and latencies to structured JSON files.",
     )
     parser.add_argument(
+        "--data-config",
+        "--data",
+        dest="data_config",
+        type=str,
+        default=None,
+        help="Optional path to dataset YAML config file for dynamic class names.",
+    )
+    parser.add_argument(
         "--device",
         type=str,
         default="cpu",
@@ -566,7 +641,24 @@ def main():
     # Determine backend & detect if weights ends with .onnx
     weights_path = Path(args.weights)
     if not weights_path.exists():
-        raise FileNotFoundError(f"Model weights not found at: {weights_path}")
+        candidates = [
+            Path("weights/best_int8.onnx"),
+            Path("weights/best.onnx"),
+            Path("experiments/spark2021_yolov8n_50e/weights/best_int8.onnx"),
+            Path("experiments/spark2021_yolov8n_50e/weights/best.onnx"),
+        ]
+        found = False
+        for cand in candidates:
+            if cand.exists():
+                print(f"[INFO] Weights '{weights_path}' not found. Using detected candidate: {cand}")
+                weights_path = cand
+                found = True
+                break
+        if not found:
+            raise FileNotFoundError(f"Model weights not found at: {weights_path}")
+
+    # Load dynamic class names if configured
+    class_names = load_class_names(args.data_config)
 
     weights_str = str(weights_path).lower()
     is_onnx = weights_str.endswith(".onnx")
@@ -634,6 +726,7 @@ def main():
                 iou=args.iou,
                 device=args.device,
                 session=shared_session,
+                class_names=class_names,
             )
         else:
             detections, latency_ms = run_pytorch_inference(
@@ -644,6 +737,7 @@ def main():
                 iou=args.iou,
                 device=args.device,
                 model=shared_model,
+                class_names=class_names,
             )
 
         # Draw and save annotated visual image
