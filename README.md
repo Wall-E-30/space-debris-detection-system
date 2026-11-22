@@ -1,6 +1,7 @@
 # Autonomous On-Orbit Space Debris Detection & Situational Awareness System
 
 [![ISRO Problem Statement #05](https://img.shields.io/badge/ISRO-Problem%20Statement%20%2305-blue.svg)](https://www.isro.gov.in/)
+[![Release](https://img.shields.io/badge/Release-v1.0%20Final-gold.svg)](docs/FINAL_EXECUTIVE_SUMMARY.md)
 [![Model Status](https://img.shields.io/badge/Model-Frozen%20(DEC--09)-brightgreen.svg)](docs/decisions.md)
 [![mAP@50](https://img.shields.io/badge/mAP%4050-99.02%25-success.svg)](docs/MASTER_PROJECT_REPORT.md)
 [![Edge Footprint](https://img.shields.io/badge/INT8%20Footprint-3.59%20MB-blue.svg)](docs/RAW_OUTPUTS_AND_BENCHMARKS.md)
@@ -166,7 +167,30 @@ Debris Query: uncataloged (Non-cooperative / SGP4 unsupported)
 
 ---
 
-### 4. Edge Benchmarking
+### 4. Interactive Web Demonstrator
+
+Launch the self-contained demonstration web application with real-time telemetry HUD and decoupled SGP4 orbital tracking:
+
+```bash
+python demo/app.py --port 8080 --weights experiments/spark2021_yolov8n_50e/weights/best_int8.onnx
+```
+Open `http://localhost:8080` in any web browser to upload images, adjust confidence thresholds, and inspect live detections.
+
+---
+
+### 5. Real-World Space Imagery Validation Benchmark
+
+Run automated batch validation across all 25 curated NASA/ESA/ISRO operational space scenes:
+
+```bash
+python scripts/verify_real_dataset.py
+```
+
+Results are saved to `outputs/inference/real_validation_results.json`.
+
+---
+
+### 6. Edge Benchmarking
 
 Benchmark latency and RSS memory consumption on the target hardware:
 
@@ -194,7 +218,12 @@ Model checkpoints are permanently frozen under **DEC-09**:
 
 ## Technical Documentation & References
 
+- [Final Executive Summary (v1.0 Milestone)](docs/FINAL_EXECUTIVE_SUMMARY.md)
 - [Master Technical Engineering Report](docs/MASTER_PROJECT_REPORT.md)
+- [Qualitative Real-Image Domain-Gap Analysis Report](docs/REAL_IMAGE_DOMAIN_GAP_REPORT.md)
+- [Analytical FPGA Feasibility Note](docs/FPGA_FEASIBILITY_NOTE.md)
+- [Technical Review Presentation Slides (12 Slides)](docs/PRESENTATION_SLIDES.md)
+- [Fallback Demonstration Video Script & Storyboard](docs/DEMO_VIDEO_SCRIPT.md)
 - [Raw Outputs, Metrics & Hardware Benchmarks](docs/RAW_OUTPUTS_AND_BENCHMARKS.md)
 - [Independent Technical Audit Report](docs/INDEPENDENT_TECHNICAL_AUDIT_REPORT.md)
 - [Architectural Decisions Ledger (DEC-01 to DEC-10)](docs/decisions.md)

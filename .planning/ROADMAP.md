@@ -14,7 +14,7 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 - [x] **Phase 6: Edge Quantization & INT8 Accuracy Retention** - Static INT8 post-training quantization (ONNX Runtime & NCNN) and evaluate accuracy retention loss on test split.
 - [x] **Phase 7: Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis** - Full edge benchmark matrix on physical Raspberry Pi 4 and Pi 5, runtime decision lock ([DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn)), and tradeoff charts.
 - [x] **Phase 8: End-to-End Inference CLI, Demo & Astrodynamics Layer** - Multi-backend [src/infer.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/infer.py), interactive demo application, independent SGP4 awareness panel ([DEC-05](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#dec-05-tle-independent-catalog-layer--uncataloged-debris-limitation)), and real-image collection.
-- [ ] **Phase 9: Real-Image Validation, Final Reporting & Project Delivery** - Qualitative synthetic-to-real domain-gap report, FPGA feasibility note, slides, fallback video, and `v1.0` tag.
+- [x] **Phase 9: Real-Image Validation, Final Reporting & Project Delivery** - Qualitative synthetic-to-real domain-gap report, FPGA feasibility note, slides, fallback video, and `v1.0` tag.
 
 ---
 
@@ -187,8 +187,8 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 
 **Plans**: 2 plans
 
-- [ ] 09-01: Perform real-image qualitative validation and draft FPGA feasibility note.
-- [ ] 09-02: Finalize technical report, slide deck, demo video, and tag repository `v1.0`.
+- [x] 09-01: Perform real-image qualitative validation and draft FPGA feasibility note.
+- [x] 09-02: Finalize technical report, slide deck, demo video, and tag repository `v1.0`.
 
 ---
 
@@ -207,9 +207,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Edge Quantization & INT8 Accuracy Retention                               | 3/3            | Complete    | 2026-11-05   |
 | 7. Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis        | 2/2            | Complete    | 2026-11-22   |
 | 8. End-to-End Inference CLI, Demo & Astrodynamics Layer                      | 2/2            | Complete    | 2026-11-22   |
-| 9. Real-Image Validation, Final Reporting & Project Delivery                 | 0/2            | Planned     | -            |
+| 9. Real-Image Validation, Final Reporting & Project Delivery                 | 2/2            | Complete    | 2026-11-22   |
 
 ---
 
 _Roadmap created: 2026-10-12_  
-_Last updated: 2026-10-23 after Raspberry Pi 5 physical edge benchmark validation_
+_Last updated: 2026-11-22 after Phase 9 completion and v1.0 release packaging_

@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-11-22T06:39:21Z",
+  "timestamp": "2026-11-22T08:25:53Z",
   "model_evaluated": "best_int8.onnx",
   "total_scenes": 25,
   "scenes_with_detections": 0,
   "total_objects_detected": 0,
   "latency_metrics": {
-    "mean_ms": 119.04,
-    "median_ms": 114.52,
-    "p95_ms": 133.77,
-    "min_ms": 106.9,
-    "max_ms": 169.84
+    "mean_ms": 235.25,
+    "median_ms": 239.56,
+    "p95_ms": 258.85,
+    "min_ms": 188.5,
+    "max_ms": 353.64
   },
   "detailed_results": [
     {
@@ -19,8 +19,8 @@
       "challenge": "Earth limb albedo + robotic arm proximity",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 133.86,
-      "total_roundtrip_ms": 217.3
+      "inference_ms": 226.97,
+      "total_roundtrip_ms": 329.27
     },
     {
       "id": "REAL_002",
@@ -29,8 +29,8 @@
       "challenge": "High geometric complexity & specular solar panel glint",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 127.38,
-      "total_roundtrip_ms": 163.52
+      "inference_ms": 202.71,
+      "total_roundtrip_ms": 246.43
     },
     {
       "id": "REAL_003",
@@ -39,8 +39,8 @@
       "challenge": "Small, irregular polygon with specular edge glint",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 114.64,
-      "total_roundtrip_ms": 165.49
+      "inference_ms": 194.84,
+      "total_roundtrip_ms": 239.27
     },
     {
       "id": "REAL_004",
@@ -49,8 +49,8 @@
       "challenge": "Distinctive wedge/tent bus geometry with solar array",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 110.08,
-      "total_roundtrip_ms": 163.35
+      "inference_ms": 237.28,
+      "total_roundtrip_ms": 281.27
     },
     {
       "id": "REAL_005",
@@ -59,8 +59,8 @@
       "challenge": "Chassis glare bloom and rapid tumbling motion",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 130.14,
-      "total_roundtrip_ms": 182.72
+      "inference_ms": 255.07,
+      "total_roundtrip_ms": 301.15
     },
     {
       "id": "REAL_006",
@@ -69,8 +69,8 @@
       "challenge": "Diffuse atmospheric boundary and high contrast",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 121.51,
-      "total_roundtrip_ms": 185.16
+      "inference_ms": 199.62,
+      "total_roundtrip_ms": 244.83
     },
     {
       "id": "REAL_007",
@@ -79,8 +79,8 @@
       "challenge": "Cylindrical tank silhouette with thermal blanket tear",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 107.14,
-      "total_roundtrip_ms": 162.43
+      "inference_ms": 234.88,
+      "total_roundtrip_ms": 284.86
     },
     {
       "id": "REAL_008",
@@ -89,8 +89,8 @@
       "challenge": "Miniature form factor (<100x100px) against black space",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 110.79,
-      "total_roundtrip_ms": 167.77
+      "inference_ms": 202.0,
+      "total_roundtrip_ms": 245.24
     },
     {
       "id": "REAL_009",
@@ -99,8 +99,8 @@
       "challenge": "Parabolic reflector dish signature",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 110.16,
-      "total_roundtrip_ms": 164.2
+      "inference_ms": 243.15,
+      "total_roundtrip_ms": 282.77
     },
     {
       "id": "REAL_010",
@@ -109,8 +109,8 @@
       "challenge": "Thin rectangular high-aspect-ratio plate",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 106.9,
-      "total_roundtrip_ms": 158.81
+      "inference_ms": 194.35,
+      "total_roundtrip_ms": 240.07
     },
     {
       "id": "REAL_011",
@@ -119,8 +119,8 @@
       "challenge": "Dual deployed solar arrays and telescope cylinder",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 119.97,
-      "total_roundtrip_ms": 172.23
+      "inference_ms": 240.31,
+      "total_roundtrip_ms": 279.77
     },
     {
       "id": "REAL_012",
@@ -129,8 +129,8 @@
       "challenge": "Large parabolic radar dish antenna signature",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 125.57,
-      "total_roundtrip_ms": 179.89
+      "inference_ms": 255.91,
+      "total_roundtrip_ms": 301.79
     },
     {
       "id": "REAL_013",
@@ -139,8 +139,8 @@
       "challenge": "Compact instrument body with dual symmetric wings",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 118.57,
-      "total_roundtrip_ms": 173.58
+      "inference_ms": 258.92,
+      "total_roundtrip_ms": 303.84
     },
     {
       "id": "REAL_014",
@@ -149,8 +149,8 @@
       "challenge": "Large solar array wings and box bus structure",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 113.49,
-      "total_roundtrip_ms": 159.64
+      "inference_ms": 258.01,
+      "total_roundtrip_ms": 300.16
     },
     {
       "id": "REAL_015",
@@ -159,8 +159,8 @@
       "challenge": "Proteus bus with dual deployable solar panels",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 110.51,
-      "total_roundtrip_ms": 149.11
+      "inference_ms": 221.42,
+      "total_roundtrip_ms": 263.16
     },
     {
       "id": "REAL_016",
@@ -169,8 +169,8 @@
       "challenge": "Multiple co-orbital assets in single sensor frame",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 114.52,
-      "total_roundtrip_ms": 169.62
+      "inference_ms": 192.18,
+      "total_roundtrip_ms": 234.66
     },
     {
       "id": "REAL_017",
@@ -179,8 +179,8 @@
       "challenge": "Hollow ring structure resembling star tracklet",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 113.19,
-      "total_roundtrip_ms": 149.58
+      "inference_ms": 207.32,
+      "total_roundtrip_ms": 246.68
     },
     {
       "id": "REAL_018",
@@ -189,8 +189,8 @@
       "challenge": "Dense star field testing false-positive rejection",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 133.41,
-      "total_roundtrip_ms": 175.09
+      "inference_ms": 255.34,
+      "total_roundtrip_ms": 303.08
     },
     {
       "id": "REAL_019",
@@ -199,8 +199,8 @@
       "challenge": "Extremely low SNR (<3.0) near sensor noise floor",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 113.02,
-      "total_roundtrip_ms": 160.36
+      "inference_ms": 188.5,
+      "total_roundtrip_ms": 230.85
     },
     {
       "id": "REAL_020",
@@ -209,8 +209,8 @@
       "challenge": "Crescent illumination with 80% shadow occlusion",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 109.49,
-      "total_roundtrip_ms": 167.4
+      "inference_ms": 353.64,
+      "total_roundtrip_ms": 399.36
     },
     {
       "id": "REAL_021",
@@ -219,8 +219,8 @@
       "challenge": "Deformable non-rigid shape and specular reflections",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 108.57,
-      "total_roundtrip_ms": 158.11
+      "inference_ms": 254.17,
+      "total_roundtrip_ms": 300.65
     },
     {
       "id": "REAL_022",
@@ -229,8 +229,8 @@
       "challenge": "Heavy lens flare and CCD saturation streaks",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 114.06,
-      "total_roundtrip_ms": 161.72
+      "inference_ms": 239.56,
+      "total_roundtrip_ms": 283.66
     },
     {
       "id": "REAL_023",
@@ -239,8 +239,8 @@
       "challenge": "Ultra-close range (<5 meters) filling 70% of frame",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 121.17,
-      "total_roundtrip_ms": 159.14
+      "inference_ms": 248.96,
+      "total_roundtrip_ms": 298.64
     },
     {
       "id": "REAL_024",
@@ -249,8 +249,8 @@
       "challenge": "Conical nozzle shape against deep space background",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 118.03,
-      "total_roundtrip_ms": 155.28
+      "inference_ms": 258.54,
+      "total_roundtrip_ms": 301.01
     },
     {
       "id": "REAL_025",
@@ -259,8 +259,8 @@
       "challenge": "Non-uniform dynamic auroral curtain background",
       "detections_count": 0,
       "detections": [],
-      "inference_ms": 169.84,
-      "total_roundtrip_ms": 205.58
+      "inference_ms": 257.56,
+      "total_roundtrip_ms": 312.37
     }
   ]
 }
