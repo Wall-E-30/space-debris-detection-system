@@ -50,7 +50,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 
 # ---------------------------------------------------------------------------
@@ -377,8 +380,15 @@ def convert_and_write(splits, class_to_id, out_dir: Path, use_link: bool, dry_ru
                 continue
 
             try:
-                with Image.open(src_path) as im:
-                    img_w, img_h = im.size
+                if Image is not None:
+                    with Image.open(src_path) as im:
+                        img_w, img_h = im.size
+                else:
+                    import cv2
+                    img = cv2.imread(str(src_path))
+                    if img is None:
+                        raise ValueError("Failed to read image")
+                    img_h, img_w = img.shape[:2]
             except Exception:
                 skipped_unreadable += 1
                 continue

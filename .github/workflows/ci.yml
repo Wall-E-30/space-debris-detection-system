@@ -60,7 +60,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-edge.txt
-          pip install skyfield pytest pytest-cov
+          pip install skyfield pytest pytest-cov Pillow
 
       - name: Execute Automated Test Suite
         run: |
