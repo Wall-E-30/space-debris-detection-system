@@ -449,7 +449,7 @@ def run_pytorch_inference(
 
 def run_onnx_inference(
     weights: str,
-    image_path: str,
+    image_path: Union[str, Path, np.ndarray],
     imgsz: int = 640,
     conf: float = 0.25,
     iou: float = 0.45,
@@ -462,7 +462,7 @@ def run_onnx_inference(
 
     Args:
         weights: Path to ONNX model weights (.onnx).
-        image_path: Path to input image file.
+        image_path: Path to input image file or in-memory BGR numpy array [H, W, 3].
         imgsz: Inference resolution.
         conf: Confidence threshold.
         iou: NMS IoU threshold.
@@ -477,10 +477,13 @@ def run_onnx_inference(
     if session is None:
         session = init_onnx_session(weights, device=device)
 
-    # Read original image
-    raw_img = cv2.imread(image_path)
-    if raw_img is None:
-        raise FileNotFoundError(f"Failed to read image at: {image_path}")
+    # Read original image or use in-memory BGR array
+    if isinstance(image_path, np.ndarray):
+        raw_img = image_path
+    else:
+        raw_img = cv2.imread(str(image_path))
+        if raw_img is None:
+            raise FileNotFoundError(f"Failed to read image at: {image_path}")
     orig_h, orig_w = raw_img.shape[:2]
 
     # Preprocessing with letterbox
@@ -742,11 +745,11 @@ def main():
 
         # Draw and save annotated visual image
         annotated_out_path = out_dir / f"{img_file.stem}_annotated.jpg"
-        draw_detections(raw_img, detections, out_path=str(annotated_out_path))
+        annotated_img = draw_detections(raw_img, detections, out_path=str(annotated_out_path))
 
         # Also save as exact original filename in out-dir if requested by standard pipelines
         direct_out_path = out_dir / img_file.name
-        cv2.imwrite(str(direct_out_path), cv2.imread(str(annotated_out_path)))
+        cv2.imwrite(str(direct_out_path), annotated_img)
 
         result_entry: Dict[str, Any] = {
             "image": img_file.name,

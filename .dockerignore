@@ -9,8 +9,10 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
-data/
-experiments/
+data/*
+!data/tle/
+experiments/*
+!experiments/spark2021_yolov8n_50e/weights/best_int8.onnx
 outputs/
 audit/
 scratch/

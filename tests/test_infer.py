@@ -183,3 +183,27 @@ class TestCLIAndInferenceSanity:
         # Run forward pass and verify return format
         detections = infer_onnx(session, dummy_tensor, orig_shape=(640, 640))
         assert isinstance(detections, list), f"Expected list of detections, got {type(detections)}"
+
+    def test_run_onnx_inference_numpy_array(self):
+        """Verify run_onnx_inference accepts in-memory BGR numpy array without disk writes."""
+        from src.infer import run_onnx_inference
+        model_path = Path("experiments/spark2021_yolov8n_50e/weights/best_int8.onnx")
+        if not model_path.exists():
+            pytest.skip("best_int8.onnx model weights not present in repository")
+
+        img = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.circle(img, (320, 240), 50, (255, 255, 255), -1)
+
+        detections, latency_ms = run_onnx_inference(
+            weights=str(model_path),
+            image_path=img,
+            conf=0.10,
+            iou=0.45,
+            imgsz=640,
+            device="cpu",
+        )
+
+        assert isinstance(detections, list)
+        assert isinstance(latency_ms, float)
+        assert latency_ms > 0
+

@@ -218,16 +218,16 @@ def main():
     parser.add_argument(
         "--weights",
         type=str,
-        required=True,
-        help="Path to model weights (.pt or exported format)",
+        default="experiments/spark2021_yolov8n_50e/weights/best_int8.onnx",
+        help="Path to model weights (.pt or exported format, default: experiments/spark2021_yolov8n_50e/weights/best_int8.onnx)",
     )
     parser.add_argument(
         "--data",
         "--data-config",
         dest="data",
         type=str,
-        default="configs/spark.yaml",
-        help="Path to dataset configuration YAML",
+        default="configs/spark2021.yaml",
+        help="Path to dataset configuration YAML (default: configs/spark2021.yaml)",
     )
     parser.add_argument(
         "--split",

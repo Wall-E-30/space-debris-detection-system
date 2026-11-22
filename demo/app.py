@@ -109,7 +109,7 @@ def get_available_presets() -> List[Dict[str, str]]:
 def render_detections_on_image(img_bgr: np.ndarray, detections: List[Dict[str, Any]]) -> np.ndarray:
     annotated = img_bgr.copy()
     for det in detections:
-        box = det["box"]
+        box = det.get("box") or det.get("bbox") or [0, 0, 0, 0]
         x1, y1, x2, y2 = [int(v) for v in box]
         cls_name = det["class_name"]
         conf = det["confidence"]
@@ -377,6 +377,12 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
         # Clean console output
         pass
 
+    def _send_security_headers(self):
+        """Inject defensive HTTP security headers into every response."""
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "default-src 'self' 'unsafe-inline' data:;")
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -384,12 +390,14 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
         if path == "/" or path == "/index.html":
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self._send_security_headers()
             self.end_headers()
             self.wfile.write(HTML_PAGE.encode("utf-8"))
 
         elif path == "/api/health":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self._send_security_headers()
             self.end_headers()
             self.wfile.write(json.dumps({"status": "healthy", "service": "space-debris-demo", "models": list(MODELS.keys())}).encode("utf-8"))
 
@@ -397,35 +405,87 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
             presets = get_available_presets()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self._send_security_headers()
             self.end_headers()
             self.wfile.write(json.dumps(presets).encode("utf-8"))
 
         elif path == "/api/load_image":
             query = urllib.parse.parse_qs(parsed.query)
             rel_path = query.get("path", [""])[0]
-            abs_path = repo_root / rel_path
-            if abs_path.exists() and abs_path.is_file():
-                with open(abs_path, "rb") as f:
+
+            # Path traversal prevention: enforce containment within data/
+            if not rel_path or ".." in rel_path:
+                self.send_response(403)
+                self.send_header("Content-Type", "application/json")
+                self._send_security_headers()
+                self.end_headers()
+                self.wfile.write(b'{"error": "Forbidden: Path traversal blocked"}')
+                return
+
+            target_path = (repo_root / rel_path).resolve()
+            allowed_root = (repo_root / "data").resolve()
+            try:
+                is_safe = target_path.is_relative_to(allowed_root)
+            except AttributeError:
+                is_safe = str(target_path).startswith(str(allowed_root))
+
+            if not is_safe:
+                self.send_response(403)
+                self.send_header("Content-Type", "application/json")
+                self._send_security_headers()
+                self.end_headers()
+                self.wfile.write(b'{"error": "Forbidden: Access outside data/ is blocked"}')
+                return
+
+            if target_path.exists() and target_path.is_file():
+                with open(target_path, "rb") as f:
                     b64 = base64.b64encode(f.read()).decode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
+                self._send_security_headers()
                 self.end_headers()
-                self.wfile.write(json.dumps({"image_base64": b64}).encode("utf-8"))
+                self.wfile.write(json.dumps({"status": "ok", "filename": target_path.name, "image_base64": b64}).encode("utf-8"))
             else:
                 self.send_response(404)
+                self.send_header("Content-Type", "application/json")
+                self._send_security_headers()
                 self.end_headers()
+                self.wfile.write(b'{"error": "Image not found"}')
         else:
             self.send_response(404)
+            self._send_security_headers()
             self.end_headers()
 
     def do_POST(self):
         if self.path == "/api/infer":
             content_length = int(self.headers.get("Content-Length", 0))
+
+            # DoS protection: reject payloads exceeding 15 MB
+            MAX_PAYLOAD_BYTES = 15 * 1024 * 1024
+            if content_length > MAX_PAYLOAD_BYTES:
+                bytes_left = content_length
+                drain_limit = MAX_PAYLOAD_BYTES + (2 * 1024 * 1024)
+                while bytes_left > 0 and (content_length - bytes_left) < drain_limit:
+                    chunk = self.rfile.read(min(bytes_left, 65536))
+                    if not chunk:
+                        break
+                    bytes_left -= len(chunk)
+
+                self.send_response(413)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Connection", "close")
+                self._send_security_headers()
+                self.end_headers()
+                self.wfile.write(b'{"error": "Payload Too Large: maximum allowed size is 15 MB"}')
+                self.close_connection = True
+                return
+
             body = self.rfile.read(content_length).decode("utf-8")
             try:
                 data = json.loads(body)
             except Exception:
                 self.send_response(400)
+                self._send_security_headers()
                 self.end_headers()
                 self.wfile.write(b"Invalid JSON payload")
                 return
@@ -440,24 +500,24 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
                 img_bytes = base64.b64decode(raw_b64)
                 np_arr = np.frombuffer(img_bytes, np.uint8)
                 img_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                if img_bgr is None:
+                    raise ValueError("Failed to decode image pixels from buffer")
             except Exception as exc:
                 self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self._send_security_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": f"Image decode failure: {exc}"}).encode("utf-8"))
                 return
-
-            # Temporary file write for existing inference API
-            temp_img = repo_root / "outputs" / "inference" / "_temp_demo.jpg"
-            temp_img.parent.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(str(temp_img), img_bgr)
 
             # Route model
             weights_file = INT8_PATH if model_type == "int8" else FP32_PATH
             session = MODELS.get(model_type)
 
+            # Direct in-memory inference without temporary disk writes (zero SD card churn)
             detections, latency_ms = run_onnx_inference(
                 weights=str(weights_file),
-                image_path=str(temp_img),
+                image_path=img_bgr,
                 imgsz=imgsz,
                 conf=conf_thresh,
                 iou=iou_thresh,
@@ -470,7 +530,7 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
             _, enc = cv2.imencode(".jpg", annotated_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
             annotated_b64 = base64.b64encode(enc).decode("utf-8")
 
-            # Astrodynamics queries
+            # Astrodynamics queries with verified catalog contract
             astro_records = []
             for det in detections:
                 cls_name = det["class_name"]
@@ -482,16 +542,26 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
                             "class_name": cls_name,
                             "confidence": conf,
                             "status": "uncataloged",
-                            "notice": pos.get("error")
+                            "notice": pos.get("error", "Uncataloged resident space object")
                         })
-                    elif pos.get("status") == "ok":
+                    elif "norad_id" in pos and "position_km" in pos:
+                        pos_arr = pos["position_km"]
+                        coords = [float(pos_arr[0]), float(pos_arr[1]), float(pos_arr[2])]
                         astro_records.append({
                             "class_name": cls_name,
                             "confidence": conf,
                             "status": "cataloged",
                             "norad_id": pos.get("norad_id"),
-                            "epoch_utc": pos.get("epoch_utc"),
-                            "coordinates_eci_km": [pos["position_km"]["x"], pos["position_km"]["y"], pos["position_km"]["z"]],
+                            "epoch_utc": pos.get("time_utc", ""),
+                            "coordinates_eci_km": coords,
+                            "position_km": coords,
+                        })
+                    else:
+                        astro_records.append({
+                            "class_name": cls_name,
+                            "confidence": conf,
+                            "status": "uncataloged",
+                            "notice": pos.get("error", "Ephemeris unavailable")
                         })
                 else:
                     astro_records.append({
@@ -513,10 +583,12 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self._send_security_headers()
             self.end_headers()
             self.wfile.write(json.dumps(resp_payload).encode("utf-8"))
         else:
             self.send_response(404)
+            self._send_security_headers()
             self.end_headers()
 
 

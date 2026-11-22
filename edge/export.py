@@ -58,6 +58,6 @@ def export_and_verify(weights_path: str, imgsz: int = 640):
     print(f"{'='*60}\n")
 
 if __name__ == "__main__":
-    # Point directly to your Week 1 smoke test checkpoint
-    checkpoint_path = "experiments/week1_smoke_test/weights/best.pt"
+    # Point directly to frozen SPARK-2021 50-epoch checkpoint
+    checkpoint_path = "experiments/spark2021_yolov8n_50e/weights/best.pt"
     export_and_verify(checkpoint_path, imgsz=640)

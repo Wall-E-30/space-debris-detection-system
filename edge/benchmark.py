@@ -215,13 +215,13 @@ def main():
         "--model",
         "--onnx",
         dest="onnx",
-        default="experiments/week1_smoke_test/weights/best.onnx",
-        help="Path to ONNX weights (.onnx) or model file",
+        default="experiments/spark2021_yolov8n_50e/weights/best_int8.onnx",
+        help="Path to ONNX weights (.onnx) or model file (default: experiments/spark2021_yolov8n_50e/weights/best_int8.onnx)",
     )
     parser.add_argument(
         "--ncnn",
-        default="experiments/week1_smoke_test/weights/best_ncnn_model",
-        help="Path to NCNN directory containing model.ncnn.param and model.ncnn.bin",
+        default="experiments/spark_yolov8n_50e/weights/best_ncnn_model",
+        help="Path to NCNN directory containing model.ncnn.param and model.ncnn.bin (default: experiments/spark_yolov8n_50e/weights/best_ncnn_model)",
     )
     parser.add_argument(
         "--device",

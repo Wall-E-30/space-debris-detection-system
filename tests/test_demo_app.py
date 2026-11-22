@@ -10,7 +10,9 @@ import base64
 import json
 import threading
 import time
+import urllib.error
 import urllib.request
+from unittest.mock import patch
 import cv2
 import numpy as np
 import pytest
@@ -112,4 +114,116 @@ def test_api_infer_endpoint(live_server):
     assert "astrodynamics" in res_data
     assert "annotated_image" in res_data
     assert res_data["model_footprint_mb"] == 3.59
+
+
+def test_security_headers_present(live_server):
+    """Verify SEC-04 security headers are injected into HTTP responses."""
+    base_url, opener = live_server
+    url = f"{base_url}/api/health"
+    resp = opener.open(url, timeout=5)
+    headers = resp.headers
+
+    assert headers.get("X-Content-Type-Options") == "nosniff"
+    assert headers.get("X-Frame-Options") == "DENY"
+    assert "default-src" in headers.get("Content-Security-Policy", "")
+
+
+def test_api_load_image_path_traversal_blocked(live_server):
+    """Verify SEC-01 path traversal attempts return HTTP 403 Forbidden."""
+    base_url, opener = live_server
+    traversal_urls = [
+        f"{base_url}/api/load_image?path=../../../../etc/passwd",
+        f"{base_url}/api/load_image?path=..%2F..%2F..%2Fwindows%2Fwin.ini",
+        f"{base_url}/api/load_image?path=src/infer.py",
+    ]
+    for url in traversal_urls:
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            opener.open(url, timeout=5)
+        assert exc_info.value.code == 403, f"Expected 403 for {url}, got {exc_info.value.code}"
+
+
+def test_api_load_image_valid(live_server):
+    """Verify valid image inside data/ directory is successfully returned as base64."""
+    base_url, opener = live_server
+    url = f"{base_url}/api/load_image?path=data/real_validation/acrimsat_active_orbit.jpg"
+    resp = opener.open(url, timeout=5)
+    assert resp.status == 200
+    data = json.loads(resp.read().decode("utf-8"))
+    assert data["status"] == "ok"
+    assert "image_base64" in data
+    assert len(data["image_base64"]) > 100
+    assert data["filename"] == "acrimsat_active_orbit.jpg"
+
+
+def test_api_infer_payload_limit_enforced(live_server):
+    """Verify SEC-02 oversized payload returns HTTP 413 Payload Too Large."""
+    base_url, opener = live_server
+    # Construct synthetic payload slightly over 15MB limit
+    oversized_data = b"x" * (15 * 1024 * 1024 + 1024)
+    req = urllib.request.Request(
+        f"{base_url}/api/infer",
+        data=oversized_data,
+        headers={"Content-Type": "application/json"}
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        opener.open(req, timeout=10)
+    assert exc_info.value.code == 413
+
+
+def test_api_infer_cataloged_satellite_telemetry(live_server):
+    """Verify cataloged satellite detection is mapped to SGP4 ephemeris telemetry without error."""
+    base_url, opener = live_server
+
+    mock_detections = [
+        {
+            "class_id": 9,
+            "class_name": "Sentinel-6",
+            "confidence": 0.96,
+            "bbox": [50.0, 50.0, 150.0, 150.0],
+        }
+    ]
+    mock_timing = {
+        "preprocess_ms": 1.2,
+        "inference_ms": 12.5,
+        "postprocess_ms": 0.8,
+        "total_ms": 14.5,
+    }
+
+    img = np.zeros((320, 320, 3), dtype=np.uint8)
+    _, enc = cv2.imencode(".jpg", img)
+    b64 = base64.b64encode(enc).decode("utf-8")
+
+    payload = json.dumps({
+        "image_base64": b64,
+        "model_type": "int8",
+        "conf": 0.20,
+        "iou": 0.45,
+        "imgsz": 640
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        f"{base_url}/api/infer",
+        data=payload,
+        headers={"Content-Type": "application/json"}
+    )
+
+    with patch("demo.app.run_onnx_inference", return_value=(mock_detections, 14.5)):
+        resp = opener.open(req, timeout=10)
+        assert resp.status == 200
+        res_data = json.loads(resp.read().decode("utf-8"))
+
+    assert len(res_data["detections"]) == 1
+    assert res_data["detections"][0]["class_name"] == "Sentinel-6"
+    assert len(res_data["astrodynamics"]) == 1
+
+    astro = res_data["astrodynamics"][0]
+    assert astro["class_name"] == "Sentinel-6"
+    assert astro["status"] == "cataloged"
+    assert astro["norad_id"] == 46984
+    assert isinstance(astro["position_km"], list)
+    assert len(astro["position_km"]) == 3
+    # Check that position components are valid numbers
+    for coord in astro["position_km"]:
+        assert isinstance(coord, (int, float))
+
 

@@ -55,8 +55,8 @@ def main():
         "--data",
         dest="data_config",
         type=str,
-        default="configs/swisscube.yaml",
-        help="Path to dataset YAML configuration file (default: configs/swisscube.yaml)",
+        default="configs/spark2021.yaml",
+        help="Path to dataset YAML configuration file (default: configs/spark2021.yaml)",
     )
     parser.add_argument(
         "--save-period",
@@ -73,13 +73,13 @@ def main():
     parser.add_argument("--exist-ok", action="store_true", default=False, help="Overwrite existing experiment directory")
     args = parser.parse_args()
 
-    repo_root = Path.cwd()
+    repo_root = Path(__file__).resolve().parent.parent
     data_config = Path(args.data_config)
     if not data_config.is_absolute():
         data_config = repo_root / data_config
 
     if not data_config.exists():
-        fallback_root = repo_root / "swisscube.yaml"
+        fallback_root = repo_root / "spark2021.yaml"
         if fallback_root.exists():
             data_config = fallback_root
         else:
@@ -89,7 +89,7 @@ def main():
     with open(data_config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
 
-    raw_path = Path(cfg.get("path", "data/processed/Swisscube"))
+    raw_path = Path(cfg.get("path", "data/processed/spark2021"))
     if not raw_path.is_absolute():
         candidate_from_config = (data_config.parent / raw_path).resolve()
         candidate_from_root = (repo_root / raw_path).resolve()
@@ -114,9 +114,9 @@ def main():
         print("  - Dataset folders ('data/') are gitignored, so images are not")
         print("    automatically transferred via git clone/pull.")
         print(" How to fix:")
-        print("  Option 1: If SwissCube is already on this machine, update 'path:' in")
+        print("  Option 1: If dataset is already on this machine, update 'path:' in")
         print(f"            {data_config.name} to its absolute location.")
-        print("  Option 2: Copy 'data/processed/Swisscube' from your laptop to:")
+        print("  Option 2: Copy dataset to:")
         print(f"            {dataset_dir}")
         print("=" * 70 + "\n")
         raise FileNotFoundError(f"Dataset images not found in {dataset_dir}")
