@@ -1,0 +1,266 @@
+{
+  "timestamp": "2026-11-22T06:39:21Z",
+  "model_evaluated": "best_int8.onnx",
+  "total_scenes": 25,
+  "scenes_with_detections": 0,
+  "total_objects_detected": 0,
+  "latency_metrics": {
+    "mean_ms": 119.04,
+    "median_ms": 114.52,
+    "p95_ms": 133.77,
+    "min_ms": 106.9,
+    "max_ms": 169.84
+  },
+  "detailed_results": [
+    {
+      "id": "REAL_001",
+      "file_name": "hst_servicing_view.jpg",
+      "target": "Hubble Space Telescope",
+      "challenge": "Earth limb albedo + robotic arm proximity",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 133.86,
+      "total_roundtrip_ms": 217.3
+    },
+    {
+      "id": "REAL_002",
+      "file_name": "iss_radiator_panel.jpg",
+      "target": "International Space Station",
+      "challenge": "High geometric complexity & specular solar panel glint",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 127.38,
+      "total_roundtrip_ms": 163.52
+    },
+    {
+      "id": "REAL_003",
+      "file_name": "debris_fragment_metallic.jpg",
+      "target": "Tracked Rocket Body Shard",
+      "challenge": "Small, irregular polygon with specular edge glint",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 114.64,
+      "total_roundtrip_ms": 165.49
+    },
+    {
+      "id": "REAL_004",
+      "file_name": "sentinel6_orbital_pass.jpg",
+      "target": "Sentinel-6 Michael Freilich",
+      "challenge": "Distinctive wedge/tent bus geometry with solar array",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 110.08,
+      "total_roundtrip_ms": 163.35
+    },
+    {
+      "id": "REAL_005",
+      "file_name": "starlink_constellation_track.jpg",
+      "target": "Starlink Flat-Panel Satellite",
+      "challenge": "Chassis glare bloom and rapid tumbling motion",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 130.14,
+      "total_roundtrip_ms": 182.72
+    },
+    {
+      "id": "REAL_006",
+      "file_name": "terra_earth_limb_horizon.jpg",
+      "target": "Terra EOS AM-1",
+      "challenge": "Diffuse atmospheric boundary and high contrast",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 121.51,
+      "total_roundtrip_ms": 185.16
+    },
+    {
+      "id": "REAL_007",
+      "file_name": "spent_upper_stage_debris.jpg",
+      "target": "Centaur Upper Stage Fragment",
+      "challenge": "Cylindrical tank silhouette with thermal blanket tear",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 107.14,
+      "total_roundtrip_ms": 162.43
+    },
+    {
+      "id": "REAL_008",
+      "file_name": "cubesat_deployment_flock.jpg",
+      "target": "3U CubeSat Deployer Ejection",
+      "challenge": "Miniature form factor (<100x100px) against black space",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 110.79,
+      "total_roundtrip_ms": 167.77
+    },
+    {
+      "id": "REAL_009",
+      "file_name": "aquarius_sac_d_pass.jpg",
+      "target": "Aquarius / SAC-D",
+      "challenge": "Parabolic reflector dish signature",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 110.16,
+      "total_roundtrip_ms": 164.2
+    },
+    {
+      "id": "REAL_010",
+      "file_name": "solar_panel_fragment_debris.jpg",
+      "target": "Solar Cell Shard",
+      "challenge": "Thin rectangular high-aspect-ratio plate",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 106.9,
+      "total_roundtrip_ms": 158.81
+    },
+    {
+      "id": "REAL_011",
+      "file_name": "calipso_lidar_satellite.jpg",
+      "target": "Calipso Spacecraft",
+      "challenge": "Dual deployed solar arrays and telescope cylinder",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 119.97,
+      "total_roundtrip_ms": 172.23
+    },
+    {
+      "id": "REAL_012",
+      "file_name": "cloudsat_radar_orbital.jpg",
+      "target": "CloudSat",
+      "challenge": "Large parabolic radar dish antenna signature",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 125.57,
+      "total_roundtrip_ms": 179.89
+    },
+    {
+      "id": "REAL_013",
+      "file_name": "acrimsat_active_orbit.jpg",
+      "target": "AcrimSat Active Radiometer",
+      "challenge": "Compact instrument body with dual symmetric wings",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 118.57,
+      "total_roundtrip_ms": 173.58
+    },
+    {
+      "id": "REAL_014",
+      "file_name": "trmm_precipitation_radar.jpg",
+      "target": "TRMM Satellite",
+      "challenge": "Large solar array wings and box bus structure",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 113.49,
+      "total_roundtrip_ms": 159.64
+    },
+    {
+      "id": "REAL_015",
+      "file_name": "jason1_ocean_topography.jpg",
+      "target": "Jason-1 Altimetry Satellite",
+      "challenge": "Proteus bus with dual deployable solar panels",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 110.51,
+      "total_roundtrip_ms": 149.11
+    },
+    {
+      "id": "REAL_016",
+      "file_name": "multisat_conjunction_scene.jpg",
+      "target": "Proximity Rendezvous Target",
+      "challenge": "Multiple co-orbital assets in single sensor frame",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 114.52,
+      "total_roundtrip_ms": 169.62
+    },
+    {
+      "id": "REAL_017",
+      "file_name": "defunct_payload_adapter_ring.jpg",
+      "target": "PAF (Payload Adapter Fitting)",
+      "challenge": "Hollow ring structure resembling star tracklet",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 113.19,
+      "total_roundtrip_ms": 149.58
+    },
+    {
+      "id": "REAL_018",
+      "file_name": "star_tracker_dense_field.jpg",
+      "target": "Star Background Clutter",
+      "challenge": "Dense star field testing false-positive rejection",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 133.41,
+      "total_roundtrip_ms": 175.09
+    },
+    {
+      "id": "REAL_019",
+      "file_name": "sensor_read_noise_low_snr.jpg",
+      "target": "Faint Small Fragment (<20px)",
+      "challenge": "Extremely low SNR (<3.0) near sensor noise floor",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 113.02,
+      "total_roundtrip_ms": 160.36
+    },
+    {
+      "id": "REAL_020",
+      "file_name": "high_phase_angle_terminator.jpg",
+      "target": "Terminator Silhouette",
+      "challenge": "Crescent illumination with 80% shadow occlusion",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 109.49,
+      "total_roundtrip_ms": 167.4
+    },
+    {
+      "id": "REAL_021",
+      "file_name": "thermal_insulation_mylar_debris.jpg",
+      "target": "Flapping MLI Blanket Piece",
+      "challenge": "Deformable non-rigid shape and specular reflections",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 108.57,
+      "total_roundtrip_ms": 158.11
+    },
+    {
+      "id": "REAL_022",
+      "file_name": "solar_bloom_overexposure.jpg",
+      "target": "Overexposed Spacecraft Bus",
+      "challenge": "Heavy lens flare and CCD saturation streaks",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 114.06,
+      "total_roundtrip_ms": 161.72
+    },
+    {
+      "id": "REAL_023",
+      "file_name": "close_proximity_inspection_01.jpg",
+      "target": "Inspection Nanosatellite",
+      "challenge": "Ultra-close range (<5 meters) filling 70% of frame",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 121.17,
+      "total_roundtrip_ms": 159.14
+    },
+    {
+      "id": "REAL_024",
+      "file_name": "rocket_body_nozzle_debris.jpg",
+      "target": "Rocket Engine Nozzle Bell",
+      "challenge": "Conical nozzle shape against deep space background",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 118.03,
+      "total_roundtrip_ms": 155.28
+    },
+    {
+      "id": "REAL_025",
+      "file_name": "grazing_orbit_aurora_limb.jpg",
+      "target": "Aurora Borealis Pass Asset",
+      "challenge": "Non-uniform dynamic auroral curtain background",
+      "detections_count": 0,
+      "detections": [],
+      "inference_ms": 169.84,
+      "total_roundtrip_ms": 205.58
+    }
+  ]
+}

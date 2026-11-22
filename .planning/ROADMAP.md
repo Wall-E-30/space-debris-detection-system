@@ -12,8 +12,8 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 - [x] **Phase 4: SPARK-2021 Model Training & Optimization** - Execute 50-epoch YOLOv8-Nano deep training on 32GB Quadro GV100 at 1024px resolution across 180,000 augmented images.
 - [x] **Phase 5: Multi-Scale Evaluation, Error Analysis & Model Freeze** - Multi-scale test evaluation (640px, 800px, 1024px), confusion matrix, 5-CAD synthetic debris analysis, and model freeze.
 - [x] **Phase 6: Edge Quantization & INT8 Accuracy Retention** - Static INT8 post-training quantization (ONNX Runtime & NCNN) and evaluate accuracy retention loss on test split.
-- [ ] **Phase 7: Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis** - Full edge benchmark matrix on physical Raspberry Pi 4 and Pi 5, runtime decision lock ([DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn)), and tradeoff charts.
-- [ ] **Phase 8: End-to-End Inference CLI, Demo & Astrodynamics Layer** - Multi-backend [src/infer.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/infer.py), interactive demo application, independent SGP4 awareness panel ([DEC-05](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#dec-05-tle-independent-catalog-layer--uncataloged-debris-limitation)), and real-image collection.
+- [x] **Phase 7: Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis** - Full edge benchmark matrix on physical Raspberry Pi 4 and Pi 5, runtime decision lock ([DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn)), and tradeoff charts.
+- [x] **Phase 8: End-to-End Inference CLI, Demo & Astrodynamics Layer** - Multi-backend [src/infer.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/infer.py), interactive demo application, independent SGP4 awareness panel ([DEC-05](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#dec-05-tle-independent-catalog-layer--uncataloged-debris-limitation)), and real-image collection.
 - [ ] **Phase 9: Real-Image Validation, Final Reporting & Project Delivery** - Qualitative synthetic-to-real domain-gap report, FPGA feasibility note, slides, fallback video, and `v1.0` tag.
 
 ---
@@ -147,10 +147,10 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 3. Decision [DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn) (NCNN vs ONNX Runtime) is officially locked based on physical SBC data.
 4. Publication-ready accuracy vs latency vs size tradeoff tables and Pareto charts are generated.
 
-**Plans**: 2 plans (1 Complete, 1 In Progress)
+**Plans**: 2 plans (Complete)
 
 - [x] 07-01: Run full edge benchmark suite on physical Raspberry Pi 5 across resolutions (640px: 144.83 ms, 800px: 285.15 ms, 1024px: 515.19 ms).
-- [ ] 07-02: Lock [DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn) and generate automated accuracy-vs-latency-vs-size tradeoff charts.
+- [x] 07-02: Lock [DEC-01](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#1-edge-deployment-framework-tflite-vs-onnx-vs-ncnn) and generate automated accuracy-vs-latency-vs-size tradeoff charts.
 
 ---
 
@@ -166,10 +166,10 @@ This roadmap defines the 4-week execution trajectory (12 Oct – 8 Nov 2026) for
 3. Independent SGP4 TLE orbital tracking module ([src/data/tle_pipeline.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/data/tle_pipeline.py)) is integrated into the demo as an informational catalog awareness panel for known spacecraft ([DEC-05](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/docs/decisions.md#dec-05-tle-independent-catalog-layer--uncataloged-debris-limitation)).
 4. Small real-world space imagery set (~20–30 public images) is assembled with recorded source licenses.
 
-**Plans**: 2 plans
+**Plans**: 2 plans (Complete)
 
-- [ ] 08-01: Develop [src/infer.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/infer.py) with multi-backend execution and assemble qualitative real-image set.
-- [ ] 08-02: Build interactive demo interface integrating detector inference and independent SGP4 awareness panel.
+- [x] 08-01: Develop [src/infer.py](file:///c:/Users/Sharanya%20Nagar/Desktop/ISRO_Hardware/space-debris-detection-system/src/infer.py) with multi-backend execution and assemble qualitative real-image set.
+- [x] 08-02: Build interactive demo interface integrating detector inference and independent SGP4 awareness panel.
 
 ---
 
@@ -204,9 +204,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Baseline Edge Validation & Multi-Scale Single-Machine Benchmarking        | 2/2            | Complete    | 2026-10-23   |
 | 4. SPARK-2021 Model Training & Optimization                                  | 2/2            | Complete    | 2026-10-19   |
 | 5. Multi-Scale Evaluation, Error Analysis & Model Freeze                     | 2/2            | Complete    | 2026-10-19   |
-| 6. Edge Quantization & INT8 Accuracy Retention                               | 0/2            | Planned     | -            |
-| 7. Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis        | 1/2            | In Progress | -            |
-| 8. End-to-End Inference CLI, Demo & Astrodynamics Layer                      | 0/2            | Planned     | -            |
+| 6. Edge Quantization & INT8 Accuracy Retention                               | 3/3            | Complete    | 2026-11-05   |
+| 7. Physical Raspberry Pi 4 / Pi 5 Benchmark Suite & Tradeoff Analysis        | 2/2            | Complete    | 2026-11-22   |
+| 8. End-to-End Inference CLI, Demo & Astrodynamics Layer                      | 2/2            | Complete    | 2026-11-22   |
 | 9. Real-Image Validation, Final Reporting & Project Delivery                 | 0/2            | Planned     | -            |
 
 ---

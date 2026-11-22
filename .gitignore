@@ -230,3 +230,4 @@ runs/
 notebooks/*.pt
 # Intermediate training checkpoints (retain best.pt, best.onnx, best_int8.onnx)
 experiments/*/weights/epoch*.pt
+outputs/inference/_temp*.jpg
